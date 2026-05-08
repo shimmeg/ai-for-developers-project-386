@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "build": "tsp compile .",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "watch": "tsp compile . --watch",
     "format": "tsp format \"**/*.tsp\"",
     "clean": "rm -rf tsp-output"
@@ -16,5 +17,8 @@
     "@typespec/rest": "^0.81.0",
     "@typespec/openapi": "^1.11.0",
     "@typespec/openapi3": "^1.11.0"
+  },
+  "devDependencies": {
+    "yaml": "^2.8.4"
   }
 }
