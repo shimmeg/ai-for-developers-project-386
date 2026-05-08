@@ -35,23 +35,28 @@ scalar EmailAddress extends string;
 @doc("IANA timezone identifier, e.g. \"Europe/Moscow\".")
 scalar IanaTimezone extends string;
 
+@doc("Positive event duration, in whole minutes.")
+@minValue(1)
+scalar DurationMinutes extends int32;
+
 // ===========================================================================
 // Owner settings
 // ===========================================================================
 
 @doc("A single day's schedule: either closed, or an open interval [start, end). Discriminated by `status`.")
-@discriminator("status")
-model WorkingDay {
-  status: string;
+@oneOf
+union WorkingDay {
+  closed: ClosedDay,
+  open: OpenDay,
 }
 
 @doc("A day on which no bookings can occur.")
-model ClosedDay extends WorkingDay {
+model ClosedDay {
   status: "closed";
 }
 
 @doc("A day with an open working window. `end` must be strictly greater than `start`.")
-model OpenDay extends WorkingDay {
+model OpenDay {
   status: "open";
   start: HhMm;
   end: HhMm;
@@ -83,7 +88,7 @@ model EventType {
   slug: EventTypeSlug;
   name: string;
   description: string;
-  durationMinutes: int32;
+  durationMinutes: DurationMinutes;
   active: boolean;
 }
 
@@ -92,7 +97,7 @@ model PublicEventType {
   slug: EventTypeSlug;
   name: string;
   description: string;
-  durationMinutes: int32;
+  durationMinutes: DurationMinutes;
 }
 
 @doc("Body for creating a new event type. The `active` flag defaults to true on creation.")
@@ -100,7 +105,7 @@ model EventTypeCreate {
   slug: EventTypeSlug;
   name: string;
   description: string;
-  durationMinutes: int32;
+  durationMinutes: DurationMinutes;
 }
 
 @doc("""
@@ -113,7 +118,7 @@ model EventTypeUpdate {
   slug?: EventTypeSlug;
   name?: string;
   description?: string;
-  durationMinutes?: int32;
+  durationMinutes?: DurationMinutes;
   active?: boolean;
 }
 
@@ -177,7 +182,7 @@ model Booking {
   startTime: offsetDateTime;
 
   @doc("Snapshot of the event type's duration at booking time, in minutes.")
-  durationMinutesSnapshot: int32;
+  durationMinutesSnapshot: DurationMinutes;
 
   guestName: string;
   guestEmail: EmailAddress;
