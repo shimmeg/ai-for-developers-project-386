@@ -7,6 +7,10 @@ A simple Calendly-style booking service built as a Hexlet learning project. A si
 
 > **Status:** v1 is in early development. Behaviour spec and API contract are in place; frontend and backend implementations will follow.
 
+## Security
+
+This v1 has **no real authentication**. The owner is identified solely by knowledge of a deployment-configured admin token sent in the `X-Admin-Token` HTTP header; anyone who knows the token can read or change owner data. **Do not deploy this version on the public internet without first adding real authentication.**
+
 ## Repository structure
 
 | Path | Purpose |

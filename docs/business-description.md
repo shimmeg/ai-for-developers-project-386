@@ -2,7 +2,7 @@
 
 ## Context
 
-This is a greenfield Hexlet learning project. The repository currently contains only `README.md` and the `hexlet-check.yml` workflow — no application code yet.
+This is a Hexlet learning project. The repository currently contains the `README.md`, the `hexlet-check.yml` workflow, and the TypeSpec API contract under `contract/`. No application code (frontend, backend, or database) exists yet.
 
 **Goal of v1:** deliver the smallest useful slice of a Calendly-style booking service so that a single, fixed calendar owner can publish event types and anonymous guests can book free slots in the next 14 days. The focus is on the calendar logic (slots, conflicts, the booking window), not on auth, email, or scaling concerns. Auth, email, and other integrations are deliberately deferred so the v1 scope stays tight.
 
@@ -94,9 +94,15 @@ Two actions: **Confirm booking** and **Back** (returns to slot picker, no bookin
 
 On submit, the server re-validates that the slot is still available.
 
-- **Success** — booking is created and the guest sees a success page with the booked details and a note: *"Please save these details — there is no email confirmation in this version."*
+- **Success** — booking is created and the guest is redirected to the success page (§3.4).
 - **Slot now taken / now in the past / event type became inactive** — booking is rejected; guest is sent back to the slot picker with an explanatory message; no partial state is written.
 - **Validation error** (missing fields, malformed email) — form is re-shown with the offending field highlighted.
+
+### 3.4 Success page (`/events/<slug>/booked/<id>`)
+
+After a successful booking the guest is redirected here. The page displays the event-type name, date and time (in the configured timezone, with the timezone label), duration, and the data the guest just submitted (name, email, notes). It also shows: *"Please save these details — there is no email confirmation in this version."*
+
+How the page obtains the booking data is the UI implementer's choice (e.g., state passed from the confirmation page, or a future GET-by-id endpoint). v1 does not require this URL to be bookmarkable or refreshable; if accessed directly without booking data, the page may show a polite "Booking not found" with a link back to the catalog.
 
 ---
 
@@ -181,7 +187,7 @@ This is a greenfield project. The implementation plan will decide the tech stack
 - A **database** persisting `owner_settings` (single row), `event_types`, and `bookings`.
 - A **secret admin token** value supplied by environment configuration on the backend, validated against the `X-Admin-Token` header on every admin API call. The frontend persists this token in browser local storage after the owner enters it on first visit; the token never appears in URLs.
 
-There are no existing functions or utilities in this repo to reuse.
+The HTTP API surface shared between frontend and backend is defined in TypeSpec under [`contract/`](../contract) and compiles to `openapi.yaml`; see the README for build instructions and the OpenAPI for exact request/response shapes. There are no existing application functions or utilities in this repo to reuse.
 
 ---
 
@@ -192,19 +198,19 @@ The implementation is correct when all of the following pass — exercised manua
 **Setup**
 - Configure timezone in settings; configure working hours for each day of the week (some days closed).
 - Create three event types with different durations (e.g., 15, 30, 60 min). Toggle one inactive.
-- Verify the inactive event type is hidden from `/` but still appears on `/<token>/admin/event-types`.
+- Verify the inactive event type is hidden from `/` but still appears on `/admin/event-types`.
 
 **Slot generation**
 - For each active event type, the slot picker for `/events/<slug>` shows slots only within working hours, only in the 14-day window, only for days not marked closed, only for slots that fit inside the day's working window, and never in the past relative to "now."
 
 **Booking happy path**
-- Book a slot as a guest. Verify it appears in `/<token>/admin/bookings` with correct fields and that the slot is no longer available in the slot picker for the same event type or any overlapping event type.
+- Book a slot as a guest. Verify the success page (§3.4) shows the booked details. Verify the booking appears in `/admin/bookings` with correct fields and that the slot is no longer available in the slot picker for the same event type or any overlapping event type.
 
 **Cross-event-type conflict**
 - Book a 60-min slot at 10:00. On a 30-min event type, verify that 10:00 and 10:30 are both unavailable, and that 09:30 (which would end at 10:00, not overlap) is available.
 
 **Cancellation**
-- Cancel the booking from `/<token>/admin/bookings`. Verify the slot becomes available again immediately for both the original event type and overlapping ones.
+- Cancel the booking from `/admin/bookings`. Verify the slot becomes available again immediately for both the original event type and overlapping ones.
 
 **Concurrency**
 - Open two browser windows on the same slot's confirmation page; submit both. Verify exactly one succeeds and the other gets a "slot no longer available" message; verify only one booking exists in the DB.
@@ -213,7 +219,7 @@ The implementation is correct when all of the following pass — exercised manua
 - At, say, 11:00, verify slots earlier than 11:00 today are not shown. Verify that yesterday is not in the window.
 
 **Configuration changes preserve bookings**
-- With an existing booking at 09:30, change working hours to start at 10:00. Verify the existing booking still appears in `/<token>/admin/bookings`. Verify new slot pickers no longer offer 09:30.
+- With an existing booking at 09:30, change working hours to start at 10:00. Verify the existing booking still appears in `/admin/bookings`. Verify new slot pickers no longer offer 09:30.
 - Toggle an event type with existing bookings to inactive. Verify the existing bookings still appear. Verify the event type is hidden from `/`.
 
 **Owner-only access**
