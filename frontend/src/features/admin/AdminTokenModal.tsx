@@ -17,8 +17,13 @@ export function AdminTokenModal() {
   );
 
   // Surface a mid-session rejection that happened while the modal was mounted.
+  // Subscribing to the token store would be more idiomatic but in practice the
+  // modal only mounts when there is no token, and rejectedAt is read at mount.
   useEffect(() => {
-    if (status === 'idle' && getRejectedAt() != null) setStatus('rejected');
+    if (status === 'idle' && getRejectedAt() != null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStatus('rejected');
+    }
   }, [status]);
 
   const submit = async (e: React.FormEvent) => {

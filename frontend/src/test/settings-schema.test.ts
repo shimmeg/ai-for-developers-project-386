@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { SettingsFormSchema, normalizeSettings } from '../features/admin/settings-schema';
 
-const okValues = {
+// Using `unknown` parse inputs so per-test mutations don't fight TS narrowing.
+const okValues: unknown = {
   timezone: 'Europe/Moscow',
   workingHours: {
     monday: { status: 'open', start: '09:00', end: '18:00' },
@@ -12,7 +13,8 @@ const okValues = {
     saturday: { status: 'closed' },
     sunday: { status: 'closed' },
   },
-} as const;
+};
+const ok = okValues as { timezone: string; workingHours: Record<string, unknown> };
 
 describe('SettingsFormSchema', () => {
   it('accepts valid values', () => {
@@ -21,27 +23,26 @@ describe('SettingsFormSchema', () => {
   });
 
   it('rejects an unknown timezone', () => {
-    const bad = { ...okValues, timezone: 'Mars/Olympus_Mons' };
+    const bad = { ...ok, timezone: 'Mars/Olympus_Mons' };
     expect(SettingsFormSchema.safeParse(bad).success).toBe(false);
   });
 
   it('rejects end <= start on an open day', () => {
     const bad = {
-      ...okValues,
+      ...ok,
       workingHours: {
-        ...okValues.workingHours,
+        ...ok.workingHours,
         monday: { status: 'open', start: '18:00', end: '09:00' },
       },
-    } as typeof okValues;
+    };
     expect(SettingsFormSchema.safeParse(bad).success).toBe(false);
   });
 
   it('rejects extraneous start/end on a closed day', () => {
     const bad = {
-      ...okValues,
+      ...ok,
       workingHours: {
-        ...okValues.workingHours,
-        // @ts-expect-error testing strictness against extra fields
+        ...ok.workingHours,
         saturday: { status: 'closed', start: '09:00', end: '18:00' },
       },
     };
@@ -54,7 +55,7 @@ describe('normalizeSettings', () => {
     const formValues = {
       timezone: 'Europe/Moscow',
       workingHours: {
-        ...okValues.workingHours,
+        ...ok.workingHours,
         saturday: { status: 'closed', start: '09:00', end: '18:00' },
       },
     } as never;
