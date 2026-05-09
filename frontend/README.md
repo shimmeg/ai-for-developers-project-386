@@ -82,6 +82,15 @@ VITE_API_BASE_URL=http://localhost:8080
 | `format`            | Run Prettier on the workspace.                                               |
 | `test`              | Run Vitest once.                                                             |
 
+## Security note: admin token storage
+
+The admin `X-Admin-Token` is stored in `localStorage` so the owner does not have to re-enter it on every refresh. This is acceptable in v1 because:
+
+- The token is a single deployment-configured shared secret, not a per-user credential.
+- The frontend has a strict no-`dangerouslySetInnerHTML` / no-third-party-script-tags policy, so any XSS would have to be introduced deliberately during development.
+
+When a real backend lands the long-term plan is to switch to an `HttpOnly` cookie (with a CSRF strategy). Tracked in [`ROADMAP.md`](ROADMAP.md) under Phase 6.
+
 ## Project layout
 
 ```
