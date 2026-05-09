@@ -18,16 +18,15 @@ export function useAdminSettings() {
     queryKey: settingsKeys.all,
     retry: (count, err) => (isHttp4xx(err) ? false : count < 1),
     queryFn: async (): Promise<OwnerSettings> => {
-      const { data, error, response } = await adminClient.GET('/admin/settings');
-      if (error) {
+      const res = await adminClient.GET('/admin/settings');
+      if (res.error) {
         throw new HttpError(
-          response.status,
-          error.code ?? 'http_error',
-          error.message ?? 'Request failed',
+          res.response.status,
+          res.error.code ?? 'http_error',
+          res.error.message ?? 'Request failed',
         );
       }
-      if (!data) throw new HttpError(response.status, 'empty', 'Empty settings response');
-      return data;
+      return res.data;
     },
   });
 }
@@ -36,16 +35,15 @@ export function useUpdateAdminSettings() {
   const queryClient = useQueryClient();
   return useMutation<OwnerSettings, HttpError, OwnerSettings>({
     mutationFn: async (body) => {
-      const { data, error, response } = await adminClient.PUT('/admin/settings', { body });
-      if (error) {
+      const res = await adminClient.PUT('/admin/settings', { body });
+      if (res.error) {
         throw new HttpError(
-          response.status,
-          error.code ?? 'http_error',
-          error.message ?? 'Update failed',
+          res.response.status,
+          res.error.code ?? 'http_error',
+          res.error.message ?? 'Update failed',
         );
       }
-      if (!data) throw new HttpError(response.status, 'empty', 'Empty settings response');
-      return data;
+      return res.data;
     },
     retry: (count, err) => (isHttp4xx(err) ? false : count < 1),
     onSuccess: (data) => {

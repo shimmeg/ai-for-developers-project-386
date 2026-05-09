@@ -41,18 +41,9 @@ const DAYS: { key: keyof SettingsFormValues['workingHours']; label: string }[] =
 ];
 
 function toFormValues(s: OwnerSettings): SettingsFormValues {
-  return {
-    timezone: s.timezone,
-    workingHours: {
-      monday: s.workingHours.monday as SettingsFormValues['workingHours']['monday'],
-      tuesday: s.workingHours.tuesday as SettingsFormValues['workingHours']['tuesday'],
-      wednesday: s.workingHours.wednesday as SettingsFormValues['workingHours']['wednesday'],
-      thursday: s.workingHours.thursday as SettingsFormValues['workingHours']['thursday'],
-      friday: s.workingHours.friday as SettingsFormValues['workingHours']['friday'],
-      saturday: s.workingHours.saturday as SettingsFormValues['workingHours']['saturday'],
-      sunday: s.workingHours.sunday as SettingsFormValues['workingHours']['sunday'],
-    },
-  };
+  // The contract's WorkingDay union is structurally identical to the form's,
+  // so no per-day cast is needed once strict mode catches mismatches.
+  return { timezone: s.timezone, workingHours: s.workingHours };
 }
 
 const EMPTY_FORM: SettingsFormValues = {

@@ -103,13 +103,27 @@ These are independent tasks; each can be its own small PR.
   - ARIA on the day-status pills and selected-slot pressed state.
   - Run axe-core via `@axe-core/react` in dev.
 - [ ] **Test coverage expansion:**
-  - Confirm form: 400/404/409 paths.
-  - Slot picker: selection + URL persistence.
+  - Confirm form: 400/404 paths and the inline conflict alert (the 409 → invalidate path is covered in Phase 2).
+  - Slot picker: selection + URL persistence + `?slot=` round-trip with `+` offset.
   - Success page: render-from-cache vs. render-without-state.
   - (Optional) Playwright E2E happy path against Prism.
-- [ ] **CI workflow** — `.github/workflows/frontend.yml`: install, gen:api, typecheck, lint, test, build on every PR.
+- [ ] **CI workflow** — `.github/workflows/frontend.yml`: install, gen:api, typecheck, lint, test, build, and `prettier --check .` on every PR.
 - [ ] **Bundle analysis** — `rollup-plugin-visualizer` once to spot large deps; consider trimming Tabler icons import.
 - [ ] **Add `@example` decorators on admin operations** — finish the work started in Phase 1 so Prism mocks all admin endpoints realistically.
+
+### Follow-ups from the May 2026 code review
+
+These came out of the independent review of Phase 1 + Phase 2 ([review prompt at `docs/...`]) and are deferred to Phase 5 since they aren't spec-blocking.
+
+- [ ] **Heading hierarchy** — give each route an explicit `Title order={1}` (the page title) and adjust `EmptyState` to take an `order` prop so it doesn't insert an h4 inside an h2 region.
+- [ ] **Form-input plumbing in SettingsPage** — replace the manual `value` / `onChange` / `error` triplets on the working-hours `TimeInput`s with `form.getInputProps('workingHours.<day>.<start|end>')` so per-field validation messages also appear on the `start` input.
+- [ ] **Centralised `pingAdmin` helper** — move `AdminTokenModal`'s raw `fetch` call into a typed helper that knows the contract path, so the URL isn't duplicated in feature code.
+- [ ] **Prettier hygiene** — run `npm run format` once across the tree to clear the 13 currently-unformatted files; pair with the CI step above.
+- [ ] **EmptyState `role`** — drop the redundant `role="link"` on the catalog `Card` (it already renders an anchor via React Router's `Link`).
+- [ ] **HMR-safe storage listener** — guard the `window.addEventListener('storage', …)` in `lib/adminToken.ts` with `import.meta.hot?.dispose(...)` so long Vite dev sessions don't accumulate listeners.
+- [ ] **Drop `as any`** in `lib/timezones.ts` once the lib config makes `Intl.supportedValuesOf` directly typed.
+- [ ] **Booking failure UX** — `BookingFailure.kind` has separate `'badRequest'` and `'other'` variants that the UI renders identically; either render distinct copy or collapse into one kind.
+- [ ] **`react-router-dom` → `react-router` v7** — the unified package; cosmetic but clears a deprecation pathway.
 
 ---
 
@@ -135,4 +149,5 @@ Things noticed along the way that aren't on a critical path:
 - Audit `npm audit` warnings; most are dev-only via Prism's deps. Decide whether to upgrade or pin.
 - Consider `@tanstack/react-query` devtools in dev only.
 - Consider migrating from `react-router-dom` to the new `react-router` package (v7 unified).
+- Stop committing `frontend/.env`; it duplicates `.env.example` and will tempt someone to drop secrets in there once a real backend lands.
 - Decide on a logo/branding pass — currently uses the default Vite favicon.

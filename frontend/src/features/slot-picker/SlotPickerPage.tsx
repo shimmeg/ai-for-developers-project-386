@@ -86,6 +86,7 @@ export function SlotPickerPage() {
                 <DayColumn
                   key={day.date}
                   day={day}
+                  timezone={slotsQ.data.timezone}
                   selectedSlot={selectedSlot}
                   onSelect={handleSelect}
                 />

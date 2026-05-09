@@ -16,7 +16,7 @@ export const router = createBrowserRouter([
       { path: '/', element: <CatalogPage /> },
       { path: '/events/:slug', element: <SlotPickerPage /> },
       { path: '/events/:slug/confirm', element: <ConfirmPage /> },
-      { path: '/events/:slug/success', element: <SuccessPage /> },
+      { path: '/events/:slug/booked/:id', element: <SuccessPage /> },
     ],
   },
   {
