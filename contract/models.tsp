@@ -50,11 +50,13 @@ union WorkingDay {
   open: OpenDay,
 }
 
+@example(#{ status: "closed" })
 @doc("A day on which no bookings can occur.")
 model ClosedDay {
   status: "closed";
 }
 
+@example(#{ status: "open", start: "09:00", end: "18:00" })
 @doc("A day with an open working window. `end` must be strictly greater than `start`.")
 model OpenDay {
   status: "open";
@@ -62,6 +64,15 @@ model OpenDay {
   end: HhMm;
 }
 
+@example(#{
+  monday: #{ status: "open", start: "09:00", end: "18:00" },
+  tuesday: #{ status: "open", start: "09:00", end: "18:00" },
+  wednesday: #{ status: "open", start: "09:00", end: "18:00" },
+  thursday: #{ status: "open", start: "09:00", end: "18:00" },
+  friday: #{ status: "open", start: "09:00", end: "17:00" },
+  saturday: #{ status: "closed" },
+  sunday: #{ status: "closed" },
+})
 @doc("Weekly working-hours schedule, with one entry per day of the week.")
 model WorkingHoursByDay {
   monday: WorkingDay;
@@ -73,6 +84,18 @@ model WorkingHoursByDay {
   sunday: WorkingDay;
 }
 
+@example(#{
+  timezone: "Europe/Moscow",
+  workingHours: #{
+    monday: #{ status: "open", start: "09:00", end: "18:00" },
+    tuesday: #{ status: "open", start: "09:00", end: "18:00" },
+    wednesday: #{ status: "open", start: "09:00", end: "18:00" },
+    thursday: #{ status: "open", start: "09:00", end: "18:00" },
+    friday: #{ status: "open", start: "09:00", end: "17:00" },
+    saturday: #{ status: "closed" },
+    sunday: #{ status: "closed" },
+  },
+})
 @doc("Owner-configurable settings. Singleton resource.")
 model OwnerSettings {
   timezone: IanaTimezone;
@@ -83,6 +106,13 @@ model OwnerSettings {
 // Event types
 // ===========================================================================
 
+@example(#{
+  slug: "intro-call",
+  name: "Intro call",
+  description: "A quick 30-minute introduction chat to get to know each other and discuss your project.",
+  durationMinutes: 30,
+  active: true,
+})
 @doc("An event type as visible to the owner (includes the active flag).")
 model EventType {
   slug: EventTypeSlug;
@@ -92,6 +122,12 @@ model EventType {
   active: boolean;
 }
 
+@example(#{
+  slug: "intro-call",
+  name: "Intro call",
+  description: "A quick 30-minute introduction chat to get to know each other and discuss your project.",
+  durationMinutes: 30,
+})
 @doc("An event type as visible to guests on the public catalog (always active).")
 model PublicEventType {
   slug: EventTypeSlug;
@@ -100,6 +136,12 @@ model PublicEventType {
   durationMinutes: DurationMinutes;
 }
 
+@example(#{
+  slug: "deep-dive",
+  name: "Deep dive",
+  description: "Focused 60-minute discussion on a specific topic.",
+  durationMinutes: 60,
+})
 @doc("Body for creating a new event type. The `active` flag defaults to true on creation.")
 model EventTypeCreate {
   slug: EventTypeSlug;
@@ -108,6 +150,7 @@ model EventTypeCreate {
   durationMinutes: DurationMinutes;
 }
 
+@example(#{ name: "Updated intro call", durationMinutes: 45 })
 @doc("""
   Body for partially updating an event type. Any subset of fields may be present;
   omitted fields are unchanged. Editing `durationMinutes` does not affect existing
@@ -138,6 +181,17 @@ enum DayStatus {
   noAvailability: "no-availability",
 }
 
+@example(#{
+  date: "2026-05-12",
+  status: DayStatus.open,
+  slots: #[
+    offsetDateTime.fromISO("2026-05-12T09:00:00+03:00"),
+    offsetDateTime.fromISO("2026-05-12T09:30:00+03:00"),
+    offsetDateTime.fromISO("2026-05-12T10:00:00+03:00"),
+    offsetDateTime.fromISO("2026-05-12T14:30:00+03:00"),
+    offsetDateTime.fromISO("2026-05-12T15:00:00+03:00"),
+  ],
+})
 @doc("One day of the slot-picker response.")
 model DaySlots {
   @doc("Calendar date in the configured timezone.")
@@ -149,6 +203,98 @@ model DaySlots {
   slots: offsetDateTime[];
 }
 
+@example(#{
+  timezone: "Europe/Moscow",
+  windowStart: "2026-05-09",
+  windowEnd: "2026-05-22",
+  days: #[
+    #{ date: "2026-05-09", status: DayStatus.closed, slots: #[] },
+    #{ date: "2026-05-10", status: DayStatus.closed, slots: #[] },
+    #{
+      date: "2026-05-11",
+      status: DayStatus.open,
+      slots: #[
+        offsetDateTime.fromISO("2026-05-11T09:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-11T09:30:00+03:00"),
+        offsetDateTime.fromISO("2026-05-11T10:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-11T14:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-11T14:30:00+03:00"),
+      ],
+    },
+    #{
+      date: "2026-05-12",
+      status: DayStatus.open,
+      slots: #[
+        offsetDateTime.fromISO("2026-05-12T09:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-12T09:30:00+03:00"),
+        offsetDateTime.fromISO("2026-05-12T10:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-12T15:00:00+03:00"),
+      ],
+    },
+    #{
+      date: "2026-05-13",
+      status: DayStatus.open,
+      slots: #[
+        offsetDateTime.fromISO("2026-05-13T11:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-13T11:30:00+03:00"),
+        offsetDateTime.fromISO("2026-05-13T13:00:00+03:00"),
+      ],
+    },
+    #{
+      date: "2026-05-14",
+      status: DayStatus.open,
+      slots: #[
+        offsetDateTime.fromISO("2026-05-14T09:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-14T16:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-14T16:30:00+03:00"),
+        offsetDateTime.fromISO("2026-05-14T17:00:00+03:00"),
+      ],
+    },
+    #{
+      date: "2026-05-15",
+      status: DayStatus.open,
+      slots: #[
+        offsetDateTime.fromISO("2026-05-15T09:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-15T09:30:00+03:00"),
+        offsetDateTime.fromISO("2026-05-15T10:00:00+03:00"),
+      ],
+    },
+    #{ date: "2026-05-16", status: DayStatus.closed, slots: #[] },
+    #{ date: "2026-05-17", status: DayStatus.closed, slots: #[] },
+    #{
+      date: "2026-05-18",
+      status: DayStatus.open,
+      slots: #[
+        offsetDateTime.fromISO("2026-05-18T09:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-18T11:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-18T14:00:00+03:00"),
+      ],
+    },
+    #{
+      date: "2026-05-19",
+      status: DayStatus.open,
+      slots: #[
+        offsetDateTime.fromISO("2026-05-19T10:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-19T13:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-19T15:00:00+03:00"),
+      ],
+    },
+    #{ date: "2026-05-20", status: DayStatus.noAvailability, slots: #[] },
+    #{
+      date: "2026-05-21",
+      status: DayStatus.open,
+      slots: #[
+        offsetDateTime.fromISO("2026-05-21T09:00:00+03:00"),
+        offsetDateTime.fromISO("2026-05-21T09:30:00+03:00"),
+      ],
+    },
+    #{
+      date: "2026-05-22",
+      status: DayStatus.open,
+      slots: #[offsetDateTime.fromISO("2026-05-22T16:00:00+03:00")],
+    },
+  ],
+})
 @doc("Response for the slot-picker endpoint. Always covers exactly 14 consecutive days.")
 model SlotPickerResponse {
   @doc("IANA timezone the times are interpreted in.")
@@ -168,6 +314,17 @@ model SlotPickerResponse {
 // Bookings
 // ===========================================================================
 
+@example(#{
+  id: "5b3f8a2c-e7f4-4a1b-9c5d-2f7e8b0a6d3c",
+  eventTypeSlug: "intro-call",
+  eventTypeName: "Intro call",
+  startTime: offsetDateTime.fromISO("2026-05-12T10:00:00+03:00"),
+  durationMinutesSnapshot: 30,
+  guestName: "Jane Doe",
+  guestEmail: "jane.doe@example.com",
+  guestNotes: "Looking forward to chatting about the project.",
+  createdAt: offsetDateTime.fromISO("2026-05-09T14:23:11+03:00"),
+})
 @doc("A booking record.")
 model Booking {
   id: BookingId;
@@ -192,6 +349,12 @@ model Booking {
   createdAt: offsetDateTime;
 }
 
+@example(#{
+  startTime: offsetDateTime.fromISO("2026-05-12T10:00:00+03:00"),
+  guestName: "Jane Doe",
+  guestEmail: "jane.doe@example.com",
+  guestNotes: "Looking forward to chatting.",
+})
 @doc("Body for creating a new booking under an event type.")
 model BookingCreate {
   @doc("Chosen slot start time. Must exactly match an available slot returned by the slot-picker endpoint.")
@@ -206,6 +369,29 @@ model BookingCreate {
 // Public catalog
 // ===========================================================================
 
+@example(#{
+  timezone: "Europe/Moscow",
+  eventTypes: #[
+    #{
+      slug: "intro-call",
+      name: "Intro call",
+      description: "A quick 30-minute introduction chat to get to know each other and discuss your project.",
+      durationMinutes: 30,
+    },
+    #{
+      slug: "deep-dive",
+      name: "Deep dive",
+      description: "Focused 60-minute discussion on a specific topic.",
+      durationMinutes: 60,
+    },
+    #{
+      slug: "office-hours",
+      name: "Office hours",
+      description: "Drop in for 15 minutes to ask anything.",
+      durationMinutes: 15,
+    },
+  ],
+})
 @doc("Response for the public event-type catalog.")
 model CatalogResponse {
   @doc("IANA timezone the times throughout the API are interpreted in.")
@@ -219,6 +405,10 @@ model CatalogResponse {
 // Errors
 // ===========================================================================
 
+@example(#{
+  code: "slot_unavailable",
+  message: "This slot is no longer available. Please pick a different time.",
+})
 @doc("Error envelope returned for any non-2xx response.")
 model Error {
   @doc("Stable error code for programmatic handling.")
