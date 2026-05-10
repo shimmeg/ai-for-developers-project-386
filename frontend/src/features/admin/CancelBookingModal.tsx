@@ -60,7 +60,7 @@ export function CancelBookingModal({
           <Button variant="subtle" onClick={onClose} disabled={isPending}>
             Keep booking
           </Button>
-          <Button color="red" loading={isPending} onClick={onConfirm}>
+          <Button color="red" loading={isPending} disabled={isPending} onClick={onConfirm}>
             Cancel booking
           </Button>
         </Group>

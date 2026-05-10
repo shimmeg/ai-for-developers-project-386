@@ -110,9 +110,7 @@ describe('useCancelBooking', () => {
 
     result.current.mutate({ id: b1.id });
 
-    await waitFor(() =>
-      expect(qc.getQueryData<Booking[]>(bookingsAdminKeys.all)).toEqual([b2]),
-    );
+    await waitFor(() => expect(qc.getQueryData<Booking[]>(bookingsAdminKeys.all)).toEqual([b2]));
     expect(deleteMock).toHaveBeenCalledTimes(1);
     const [, options] = deleteMock.mock.calls[0];
     expect((options as { params: { path: { id: string } } }).params.path.id).toBe(b1.id);
@@ -138,9 +136,7 @@ describe('useCancelBooking', () => {
 
     result.current.mutate({ id: b1.id });
 
-    await waitFor(() =>
-      expect(qc.getQueryData<Booking[]>(bookingsAdminKeys.all)).toEqual([b2]),
-    );
+    await waitFor(() => expect(qc.getQueryData<Booking[]>(bookingsAdminKeys.all)).toEqual([b2]));
 
     resolve({
       data: undefined,

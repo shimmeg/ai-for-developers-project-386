@@ -161,11 +161,25 @@ describe('BookingsPage', () => {
     expect(await screen.findByText(/couldn't load bookings/i)).toBeInTheDocument();
   });
 
+  it('renders an ErrorState when settings load fails (no silent UTC fallback)', async () => {
+    getMock.mockImplementation((path: string) => {
+      if (path === '/admin/bookings') return ok(bookings);
+      if (path === '/admin/settings') return fail(403, 'forbidden');
+      return ok(undefined);
+    });
+    renderPage();
+    expect(await screen.findByText(/couldn't load settings/i)).toBeInTheDocument();
+    // The TimezoneBanner must not be rendered with a wrong/UTC label.
+    expect(screen.queryByText(/all times shown in/i)).not.toBeInTheDocument();
+  });
+
   it('opens the cancel modal with the booking summary when Cancel is clicked', async () => {
     mockListAndSettings(bookings);
     renderPage();
     const janeRow = (await screen.findByText('Jane Doe')).closest('tr')!;
-    await userEvent.click(within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }));
+    await userEvent.click(
+      within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }),
+    );
     const dialog = await screen.findByRole('dialog', { name: /cancel booking/i });
     expect(within(dialog).getByText('Intro call')).toBeInTheDocument();
     expect(within(dialog).getByText(/jane doe/i)).toBeInTheDocument();
@@ -181,7 +195,9 @@ describe('BookingsPage', () => {
     );
     renderPage();
     const janeRow = (await screen.findByText('Jane Doe')).closest('tr')!;
-    await userEvent.click(within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }));
+    await userEvent.click(
+      within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }),
+    );
     await screen.findByRole('dialog', { name: /cancel booking/i });
     await userEvent.click(screen.getByRole('button', { name: /^cancel booking$/i }));
 
@@ -209,7 +225,9 @@ describe('BookingsPage', () => {
     );
     renderPage();
     const janeRow = (await screen.findByText('Jane Doe')).closest('tr')!;
-    await userEvent.click(within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }));
+    await userEvent.click(
+      within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }),
+    );
     await userEvent.click(screen.getByRole('button', { name: /^cancel booking$/i }));
 
     await waitFor(() => expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument());
@@ -227,12 +245,37 @@ describe('BookingsPage', () => {
     );
   });
 
+  it('does not fire DELETE twice on a rapid double-click of the destructive button', async () => {
+    mockListAndSettings(bookings);
+    let resolve!: (r: { data?: undefined; error?: undefined; response: Response }) => void;
+    deleteMock.mockReturnValueOnce(
+      new Promise((r) => {
+        resolve = r;
+      }),
+    );
+    renderPage();
+    const janeRow = (await screen.findByText('Jane Doe')).closest('tr')!;
+    await userEvent.click(
+      within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }),
+    );
+    const destructiveBtn = await screen.findByRole('button', { name: /^cancel booking$/i });
+    await userEvent.click(destructiveBtn);
+    // Second click while the first DELETE is in flight should be a no-op:
+    // the destructive button is `disabled` while pending, and the page also
+    // gates onCancelConfirm on cancelM.isPending.
+    await userEvent.click(destructiveBtn);
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    resolve({ response: new Response(null, { status: 204 }) });
+  });
+
   it('treats a 404 cancel as a benign race ("Already cancelled")', async () => {
     mockListAndSettings(bookings);
     deleteMock.mockReturnValueOnce(fail(404, 'gone'));
     renderPage();
     const janeRow = (await screen.findByText('Jane Doe')).closest('tr')!;
-    await userEvent.click(within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }));
+    await userEvent.click(
+      within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }),
+    );
     await userEvent.click(screen.getByRole('button', { name: /^cancel booking$/i }));
 
     expect(await screen.findByText(/already cancelled/i)).toBeInTheDocument();

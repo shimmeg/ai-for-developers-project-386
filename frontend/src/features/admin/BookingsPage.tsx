@@ -9,17 +9,14 @@ import {
   Text,
   Title,
   Tooltip,
+  UnstyledButton,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconCalendarEvent } from '@tabler/icons-react';
 import { Link } from 'react-router';
 import { ErrorState } from '../../components/ErrorState';
 import { TimezoneBanner } from '../../components/TimezoneBanner';
-import {
-  useAdminBookings,
-  useCancelBooking,
-  type Booking,
-} from '../../api/queries/bookingsAdmin';
+import { useAdminBookings, useCancelBooking, type Booking } from '../../api/queries/bookingsAdmin';
 import { useAdminSettings } from '../../api/queries/settings';
 import { formatFullHuman } from '../../lib/datetime';
 import { CancelBookingModal } from './CancelBookingModal';
@@ -49,36 +46,48 @@ export function BookingsPage() {
     );
   }
 
-  if (listQ.isError) {
+  // Settings is normally already cached after the AdminGate's initial probe,
+  // so settingsQ.isError is rare. Surface it explicitly rather than silently
+  // falling back to UTC: misrepresenting times under a TimezoneBanner that
+  // says the wrong zone is worse than not rendering times at all.
+  if (listQ.isError || settingsQ.isError) {
+    const isList = listQ.isError;
+    const message = isList
+      ? listQ.error.message
+      : (settingsQ.error?.message ?? 'Please try again.');
     return (
       <ErrorState
-        title="Couldn't load bookings"
-        message={listQ.error.message}
-        onRetry={() => listQ.refetch()}
+        title={isList ? "Couldn't load bookings" : "Couldn't load settings"}
+        message={message}
+        onRetry={() => {
+          if (listQ.isError) listQ.refetch();
+          if (settingsQ.isError) settingsQ.refetch();
+        }}
       />
     );
   }
 
-  // Settings is normally already cached after the AdminGate's initial probe.
-  // If it errored here, fall back to UTC so the page still renders rather
-  // than blocking the cancel flow.
-  const timezone = settingsQ.data?.timezone ?? 'UTC';
+  const timezone = settingsQ.data.timezone;
   const items = listQ.data;
 
   const onCancelConfirm = () => {
-    if (confirm.kind !== 'open') return;
+    // Guard against rapid double-clicks: a second mutate while the first is
+    // in flight reads the optimistically-emptied cache as `previous` and can
+    // roll back to the wrong state on error.
+    if (confirm.kind !== 'open' || cancelM.isPending) return;
     const { booking } = confirm;
+    const meta = `${booking.guestName} — ${formatFullHuman(booking.startTime, timezone)}`;
     cancelM.mutate(
       { id: booking.id },
       {
         onSuccess: () => {
-          notifications.show({ color: 'green', title: 'Booking cancelled', message: '' });
+          notifications.show({ color: 'green', title: 'Booking cancelled', message: meta });
           setConfirm({ kind: 'closed' });
         },
         onError: (err) => {
           if (err.status === 404) {
             // Benign race — invalidation already removed the row from the cache.
-            notifications.show({ color: 'gray', title: 'Already cancelled', message: '' });
+            notifications.show({ color: 'gray', title: 'Already cancelled', message: meta });
             setConfirm({ kind: 'closed' });
             return;
           }
@@ -131,8 +140,7 @@ export function BookingsPage() {
           <Table.Tbody>
             {items.map((b) => {
               const formattedStart = formatFullHuman(b.startTime, timezone);
-              const truncated =
-                !!b.guestNotes && b.guestNotes.length > NOTES_PREVIEW_LIMIT;
+              const truncated = !!b.guestNotes && b.guestNotes.length > NOTES_PREVIEW_LIMIT;
               return (
                 <Table.Tr key={b.id}>
                   <Table.Td>{formattedStart}</Table.Td>
@@ -147,30 +155,28 @@ export function BookingsPage() {
                     </Stack>
                   </Table.Td>
                   <Table.Td>
-                    {b.guestNotes ? (
+                    {!b.guestNotes ? (
+                      <Text size="sm" c="dimmed">
+                        —
+                      </Text>
+                    ) : truncated ? (
+                      // Truncated notes are wrapped in an UnstyledButton so the
+                      // trigger is a real interactive element. Mantine Tooltip
+                      // wires aria-describedby to the full text on hover/focus/
+                      // touch — no aria-label override (which would replace the
+                      // visible truncated text as the accessible name).
                       <Tooltip
                         multiline
                         w={320}
                         label={b.guestNotes}
-                        disabled={!truncated}
                         events={{ hover: true, focus: true, touch: true }}
                       >
-                        <Text
-                          component="span"
-                          size="sm"
-                          tabIndex={truncated ? 0 : undefined}
-                          aria-label={truncated ? b.guestNotes : undefined}
-                          style={truncated ? { cursor: 'help' } : undefined}
-                        >
-                          {truncated
-                            ? truncate(b.guestNotes, NOTES_PREVIEW_LIMIT)
-                            : b.guestNotes}
-                        </Text>
+                        <UnstyledButton style={{ cursor: 'help', textAlign: 'left' }}>
+                          <Text size="sm">{truncate(b.guestNotes, NOTES_PREVIEW_LIMIT)}</Text>
+                        </UnstyledButton>
                       </Tooltip>
                     ) : (
-                      <Text size="sm" c="dimmed">
-                        —
-                      </Text>
+                      <Text size="sm">{b.guestNotes}</Text>
                     )}
                   </Table.Td>
                   <Table.Td>
