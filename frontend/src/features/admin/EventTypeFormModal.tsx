@@ -58,8 +58,9 @@ export function EventTypeFormModal(props: Props) {
       : null;
 
   const onSubmit = (values: EventTypeFormValues) => {
+    const normalized = EventTypeFormSchema.parse(values);
     if (isEdit) {
-      const body = diffEventType(initial, values);
+      const body = diffEventType(initial, normalized);
       if (Object.keys(body).length === 0) return;
       updateM.mutate(
         { slug: props.eventType.slug, body },
@@ -71,7 +72,7 @@ export function EventTypeFormModal(props: Props) {
         },
       );
     } else {
-      createM.mutate(values, {
+      createM.mutate(normalized, {
         onSuccess: (saved) => {
           notifications.show({ color: 'green', title: `${saved.name} created`, message: '' });
           props.onClose();

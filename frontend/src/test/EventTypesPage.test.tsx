@@ -98,6 +98,29 @@ describe('EventTypesPage', () => {
     });
   });
 
+  it('does not dispatch overlapping PATCHes for the same active toggle', async () => {
+    getMock.mockReturnValue(ok(list));
+    let resolve!: (r: { data: EventType; error?: never; response: Response }) => void;
+    patchMock.mockReturnValueOnce(
+      new Promise((r) => {
+        resolve = r;
+      }),
+    );
+    renderPage();
+
+    const introRow = (await screen.findByText('Intro')).closest('tr')!;
+    const toggle = within(introRow).getByRole('switch');
+    await userEvent.click(toggle);
+    expect(toggle).toBeDisabled();
+    await userEvent.click(toggle);
+
+    expect(patchMock).toHaveBeenCalledTimes(1);
+    resolve({
+      data: { ...list[0], active: false },
+      response: new Response(JSON.stringify({ ...list[0], active: false }), { status: 200 }),
+    });
+  });
+
   it('rolls back the toggle when the PATCH fails', async () => {
     getMock.mockReturnValue(ok(list));
     // Defer the PATCH so we can observe the optimistic flip before the error

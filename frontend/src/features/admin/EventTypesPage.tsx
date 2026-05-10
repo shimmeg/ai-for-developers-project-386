@@ -168,9 +168,11 @@ export function EventTypesPage() {
                   <Switch
                     aria-label="Toggle active"
                     checked={ev.active}
-                    onChange={(e) =>
-                      toggle.mutate({ slug: ev.slug, active: e.currentTarget.checked })
-                    }
+                    disabled={toggle.isPending}
+                    onChange={(e) => {
+                      if (toggle.isPending) return;
+                      toggle.mutate({ slug: ev.slug, active: e.currentTarget.checked });
+                    }}
                   />
                 </Table.Td>
                 <Table.Td>

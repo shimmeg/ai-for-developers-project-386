@@ -98,6 +98,23 @@ describe('EventTypeFormModal — create', () => {
     });
   });
 
+  it('trims text fields before submitting', async () => {
+    postMock.mockReturnValue(ok(ev));
+    renderCreate();
+
+    await userEvent.type(screen.getByLabelText(/^slug/i), 'intro-call');
+    await userEvent.type(screen.getByLabelText(/^name/i), '  Intro call  ');
+    await userEvent.type(screen.getByLabelText(/^description/i), '  A 30-minute chat.  ');
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+    const [, options] = postMock.mock.calls[0];
+    expect((options as { body: unknown }).body).toMatchObject({
+      name: 'Intro call',
+      description: 'A 30-minute chat.',
+    });
+  });
+
   it('shows an inline slug error on 409', async () => {
     postMock.mockReturnValue(conflict('duplicate slug'));
     renderCreate();
