@@ -8,6 +8,7 @@ import { ConfirmPage } from './features/booking/ConfirmPage';
 import { SuccessPage } from './features/booking/SuccessPage';
 import { SettingsPage } from './features/admin/SettingsPage';
 import { EventTypesPage } from './features/admin/EventTypesPage';
+import { BookingsPage } from './features/admin/BookingsPage';
 import { NotFoundPage } from './features/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="settings" replace /> },
           { path: 'settings', element: <SettingsPage /> },
           { path: 'event-types', element: <EventTypesPage /> },
+          { path: 'bookings', element: <BookingsPage /> },
         ],
       },
     ],
