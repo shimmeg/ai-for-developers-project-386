@@ -1,5 +1,5 @@
 import { AppShell, Container, Group, Text, Title } from '@mantine/core';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router';
 
 export function Layout() {
   return (

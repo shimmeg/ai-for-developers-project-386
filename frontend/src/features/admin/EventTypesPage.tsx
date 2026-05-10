@@ -14,15 +14,12 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconPlus } from '@tabler/icons-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ErrorState } from '../../components/ErrorState';
 import {
-  eventTypesAdminKeys,
   useAdminEventTypes,
+  useToggleActiveEventType,
   type EventType,
 } from '../../api/queries/eventTypesAdmin';
-import { HttpError } from '../../lib/httpError';
-import { adminClient } from '../../api/adminClient';
 import { EventTypeFormModal } from './EventTypeFormModal';
 
 type ModalState =
@@ -30,62 +27,9 @@ type ModalState =
   | { kind: 'create' }
   | { kind: 'edit'; eventType: EventType };
 
-function useToggleActive() {
-  const queryClient = useQueryClient();
-  return useMutation<
-    EventType,
-    HttpError,
-    { slug: string; active: boolean },
-    { previous?: EventType[] }
-  >({
-    retry: false,
-    mutationFn: async ({ slug, active }) => {
-      const res = await adminClient.PATCH('/admin/event-types/{slug}', {
-        params: { path: { slug } },
-        body: { active },
-      });
-      if (res.error) {
-        throw new HttpError(
-          res.response.status,
-          res.error.code ?? 'http_error',
-          res.error.message ?? 'Update failed',
-        );
-      }
-      return res.data;
-    },
-    onMutate: async ({ slug, active }) => {
-      await queryClient.cancelQueries({ queryKey: eventTypesAdminKeys.all });
-      const previous = queryClient.getQueryData<EventType[]>(eventTypesAdminKeys.all);
-      if (previous) {
-        queryClient.setQueryData<EventType[]>(
-          eventTypesAdminKeys.all,
-          previous.map((e) => (e.slug === slug ? { ...e, active } : e)),
-        );
-      }
-      return { previous };
-    },
-    onError: (err, _vars, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(eventTypesAdminKeys.all, ctx.previous);
-      notifications.show({ color: 'red', title: 'Failed to update', message: err.message });
-    },
-    onSuccess: (saved) => {
-      notifications.show({
-        color: saved.active ? 'green' : 'gray',
-        title: saved.active
-          ? `${saved.name} is now active`
-          : `${saved.name} is now hidden from the catalog`,
-        message: '',
-      });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: eventTypesAdminKeys.all });
-    },
-  });
-}
-
 export function EventTypesPage() {
   const listQ = useAdminEventTypes();
-  const toggle = useToggleActive();
+  const toggle = useToggleActiveEventType();
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
 
   if (listQ.isPending) {
@@ -102,17 +46,41 @@ export function EventTypesPage() {
   }
 
   if (listQ.isError) {
-    const err = listQ.error as Error;
     return (
       <ErrorState
         title="Couldn't load event types"
-        message={err.message}
+        message={listQ.error.message}
         onRetry={() => listQ.refetch()}
       />
     );
   }
 
   const items = listQ.data;
+
+  const handleToggle = (ev: EventType, active: boolean) => {
+    if (toggle.isPending) return;
+    toggle.mutate(
+      { slug: ev.slug, active },
+      {
+        onSuccess: (saved) => {
+          notifications.show({
+            color: saved.active ? 'green' : 'gray',
+            title: saved.active
+              ? `${saved.name} is now active`
+              : `${saved.name} is now hidden from the catalog`,
+            message: '',
+          });
+        },
+        onError: (err) => {
+          notifications.show({
+            color: 'red',
+            title: 'Failed to update',
+            message: err.message,
+          });
+        },
+      },
+    );
+  };
 
   return (
     <Stack gap="md">
@@ -169,10 +137,7 @@ export function EventTypesPage() {
                     aria-label="Toggle active"
                     checked={ev.active}
                     disabled={toggle.isPending}
-                    onChange={(e) => {
-                      if (toggle.isPending) return;
-                      toggle.mutate({ slug: ev.slug, active: e.currentTarget.checked });
-                    }}
+                    onChange={(e) => handleToggle(ev, e.currentTarget.checked)}
                   />
                 </Table.Td>
                 <Table.Td>

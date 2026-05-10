@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MantineProvider } from '@mantine/core';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { AdminLayout } from '../components/AdminLayout';
 import { getAdminToken, setAdminToken } from '../lib/adminToken';
 

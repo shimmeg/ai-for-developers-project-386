@@ -1,5 +1,5 @@
 import { AppShell, Button, Container, Group, Text, Title } from '@mantine/core';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { clearAdminToken } from '../lib/adminToken';
 
 export function AdminLayout() {

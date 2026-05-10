@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminClient } from '../adminClient';
 import type { components } from '../types';
-import { HttpError } from '../../lib/httpError';
+import { HttpError, toHttpError } from '../../lib/httpError';
 
 export type OwnerSettings = components['schemas']['OwnerSettings'];
 
@@ -14,18 +14,12 @@ function isHttp4xx(err: unknown): boolean {
 }
 
 export function useAdminSettings() {
-  return useQuery({
+  return useQuery<OwnerSettings, HttpError>({
     queryKey: settingsKeys.all,
     retry: (count, err) => (isHttp4xx(err) ? false : count < 1),
-    queryFn: async (): Promise<OwnerSettings> => {
+    queryFn: async () => {
       const res = await adminClient.GET('/admin/settings');
-      if (res.error) {
-        throw new HttpError(
-          res.response.status,
-          res.error.code ?? 'http_error',
-          res.error.message ?? 'Request failed',
-        );
-      }
+      if (res.error) throw toHttpError(res.error, res.response);
       return res.data;
     },
   });
@@ -36,13 +30,7 @@ export function useUpdateAdminSettings() {
   return useMutation<OwnerSettings, HttpError, OwnerSettings>({
     mutationFn: async (body) => {
       const res = await adminClient.PUT('/admin/settings', { body });
-      if (res.error) {
-        throw new HttpError(
-          res.response.status,
-          res.error.code ?? 'http_error',
-          res.error.message ?? 'Update failed',
-        );
-      }
+      if (res.error) throw toHttpError(res.error, res.response, 'Update failed');
       return res.data;
     },
     retry: (count, err) => (isHttp4xx(err) ? false : count < 1),

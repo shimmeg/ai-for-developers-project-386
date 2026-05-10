@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Anchor, Button, Group, Modal, PasswordInput, Stack, Text } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { setAdminToken, getRejectedAt } from '../../lib/adminToken';
-import { env } from '../../lib/env';
-import { settingsKeys, type OwnerSettings } from '../../api/queries/settings';
+import { pingAdmin } from '../../api/adminClient';
+import { settingsKeys } from '../../api/queries/settings';
 
 type Status = 'idle' | 'submitting' | 'rejected' | 'network';
 
@@ -16,39 +16,24 @@ export function AdminTokenModal() {
     getRejectedAt() != null ? 'rejected' : 'idle',
   );
 
-  // Surface a mid-session rejection that happened while the modal was mounted.
-  // Subscribing to the token store would be more idiomatic but in practice the
-  // modal only mounts when there is no token, and rejectedAt is read at mount.
-  useEffect(() => {
-    if (status === 'idle' && getRejectedAt() != null) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStatus('rejected');
-    }
-  }, [status]);
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (status === 'submitting' || token.length === 0) return;
     setStatus('submitting');
-    try {
-      const res = await fetch(`${env.apiBaseUrl}/admin/settings`, {
-        headers: { 'X-Admin-Token': token },
-      });
-      if (res.status === 200) {
-        const json = (await res.json()) as OwnerSettings;
-        setAdminToken(token);
-        queryClient.setQueryData(settingsKeys.all, json);
-        return;
-      }
-      if (res.status === 401) {
-        setStatus('rejected');
-        setToken('');
-        return;
-      }
-      setStatus('network');
-    } catch {
-      setStatus('network');
+    const result = await pingAdmin(token);
+    if (result.ok) {
+      setAdminToken(token);
+      // Seed the cache with the settings we already fetched during validation,
+      // so the admin layout doesn't immediately re-request the same data.
+      queryClient.setQueryData(settingsKeys.all, result.settings);
+      return;
     }
+    if (result.kind === 'rejected') {
+      setStatus('rejected');
+      setToken('');
+      return;
+    }
+    setStatus('network');
   };
 
   return (

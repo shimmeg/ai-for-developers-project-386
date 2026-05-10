@@ -35,6 +35,8 @@ One-command dev (contract watcher + Prism + Vite, all in one process):
 npm run dev:full
 ```
 
+> **Note on the dev mock:** Prism returns the contract's example bodies for any `X-Admin-Token` header value — it does not enforce token validity. Token-rejection paths are exercised via Vitest unit tests against a mocked client; do not assume the dev server replicates real-backend authentication behaviour.
+
 Or run each piece separately in three terminals:
 
 ```bash
@@ -54,6 +56,35 @@ Open [http://localhost:5173](http://localhost:5173) and walk the guest happy pat
 2. **Slot picker** at `/events/:slug` — 14-day grid from `GET /event-types/:slug/slots`. Click a slot to select it.
 3. **Confirm** at `/events/:slug/confirm?slot=…` — Mantine form with Zod validation; `POST /event-types/:slug/bookings` on submit.
 4. **Success** at `/events/:slug/booked/:id` — confirmation details.
+
+### Admin flows
+
+Visit `/admin/settings` or `/admin/event-types`. The token modal appears on first admin visit. Against the Prism mock you can type **any value** — it's not enforced (see the dev-mock note above). Against a real backend, supply the deployment-configured `X-Admin-Token`.
+
+- **Settings** (`/admin/settings`) — change timezone or working hours, Save → success notification, refresh persists (Prism replays the example body).
+- **Event types** (`/admin/event-types`) — list, toggle active (optimistic update), create, edit. Slug-conflict UX is exercised when the contract returns 409.
+- **Sign out** clears the stored token; the modal re-appears on the next admin route visit.
+
+### Failure-mode behaviour worth knowing
+
+Prism only returns example success bodies, so error paths are easiest to reach by stopping the mock and reloading:
+
+- **Slots fetch fails** — the slot picker shows the event-type header followed by a "Couldn't load slots" alert with a Retry button (the picker grid is hidden until slots load).
+- **Inactive event type (404)** — both the slot picker and the booking confirm page render a dedicated "Event type not available" message instead of a generic error.
+- **Booking 409** — the confirm page shows "Slot is no longer available" with a link back to the picker; the slot cache is invalidated automatically.
+
+Token rejection (401) and the booking-flow status branches (400/404/409/5xx) are exercised in unit tests under `src/test/`; see `AdminTokenModal.test.tsx` and `bookings-conflict.test.tsx`.
+
+## Automated checks
+
+```bash
+npm run typecheck      # tsc -b --noEmit
+npm run lint           # eslint .
+npm run test           # vitest run
+npm run build          # tsc -b && vite build
+```
+
+All four should pass on a clean checkout. `npm test` works without a `.env` file (the Vitest config supplies a default `VITE_API_BASE_URL`).
 
 ## Pointing at a real backend
 
@@ -77,7 +108,7 @@ VITE_API_BASE_URL=http://localhost:8080
 | `gen:api`           | Build the contract and regenerate `src/api/types.ts`.                        |
 | `build`             | Type-check and produce a production bundle in `dist/`.                       |
 | `preview`           | Serve the production build locally.                                          |
-| `typecheck`         | Run `tsc --noEmit`.                                                          |
+| `typecheck`         | Run `tsc -b --noEmit` against the project references.                        |
 | `lint`              | Run ESLint.                                                                  |
 | `format`            | Run Prettier on the workspace.                                               |
 | `test`              | Run Vitest once.                                                             |
@@ -97,8 +128,9 @@ When a real backend lands the long-term plan is to switch to an `HttpOnly` cooki
 src/
 ├── api/                  # openapi-fetch client, generated types, query/mutation hooks
 ├── components/           # shared building blocks (Layout, ErrorState, EmptyState, …)
-├── features/             # one folder per route group (catalog, slot-picker, booking)
-├── lib/                  # env, queryClient, theme
+├── features/             # one folder per route group (catalog, slot-picker, booking, admin)
+├── lib/                  # env, queryClient, theme, datetime, timezones, adminToken,
+│                         #   useAdminToken, httpError
 ├── test/                 # Vitest setup + smoke tests
 └── main.tsx              # bootstrap: providers, router
 ```

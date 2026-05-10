@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Button,
@@ -23,7 +23,6 @@ import {
 } from '../../api/queries/settings';
 import { ErrorState } from '../../components/ErrorState';
 import { withCurrentTimezone } from '../../lib/timezones';
-import { HttpError } from '../../lib/httpError';
 import {
   createSettingsFormSchema,
   type SettingsFormValues,
@@ -41,43 +40,11 @@ const DAYS: { key: keyof SettingsFormValues['workingHours']; label: string }[] =
 ];
 
 function toFormValues(s: OwnerSettings): SettingsFormValues {
-  // The contract's WorkingDay union is structurally identical to the form's,
-  // so no per-day cast is needed once strict mode catches mismatches.
   return { timezone: s.timezone, workingHours: s.workingHours };
 }
 
-const EMPTY_FORM: SettingsFormValues = {
-  timezone: '',
-  workingHours: {
-    monday: { status: 'closed' },
-    tuesday: { status: 'closed' },
-    wednesday: { status: 'closed' },
-    thursday: { status: 'closed' },
-    friday: { status: 'closed' },
-    saturday: { status: 'closed' },
-    sunday: { status: 'closed' },
-  },
-};
-
 export function SettingsPage() {
   const settingsQ = useAdminSettings();
-  const update = useUpdateAdminSettings();
-  const currentTimezone = settingsQ.data?.timezone;
-
-  const form = useForm<SettingsFormValues>({
-    mode: 'controlled',
-    initialValues: EMPTY_FORM,
-    validate: zod4Resolver(createSettingsFormSchema(currentTimezone ? [currentTimezone] : [])),
-  });
-
-  useEffect(() => {
-    if (settingsQ.data) {
-      const fv = toFormValues(settingsQ.data);
-      form.setValues(fv);
-      form.resetDirty(fv);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsQ.data]);
 
   if (settingsQ.isPending) {
     return (
@@ -92,30 +59,46 @@ export function SettingsPage() {
   }
 
   if (settingsQ.isError) {
-    const err = settingsQ.error as Error | HttpError;
     return (
       <ErrorState
         title="Couldn't load settings"
-        message={err.message}
+        message={settingsQ.error.message}
         onRetry={() => settingsQ.refetch()}
       />
     );
   }
+
+  return <SettingsForm initial={settingsQ.data} />;
+}
+
+function SettingsForm({ initial }: { initial: OwnerSettings }) {
+  const update = useUpdateAdminSettings();
+  // Lock the form's seed to the data the page mounted with. Subsequent server
+  // refetches do not silently overwrite in-progress edits — if the user wants
+  // a fresh copy, they hit Reset (which uses the latest saved snapshot).
+  const [savedSnapshot, setSavedSnapshot] = useState<OwnerSettings>(initial);
+
+  const form = useForm<SettingsFormValues>({
+    mode: 'controlled',
+    initialValues: toFormValues(initial),
+    validate: zod4Resolver(createSettingsFormSchema([initial.timezone])),
+  });
 
   const tzData = withCurrentTimezone(form.getValues().timezone);
 
   const onSubmit = (values: SettingsFormValues) => {
     update.mutate(normalizeSettings(values), {
       onSuccess: (saved) => {
+        setSavedSnapshot(saved);
         const fv = toFormValues(saved);
         form.setValues(fv);
         form.resetDirty(fv);
-        notifications.show({ color: 'green', title: 'Settings saved.', message: '' });
+        notifications.show({ color: 'green', title: 'Settings saved', message: '' });
       },
     });
   };
 
-  const errorMsg = update.error instanceof HttpError ? update.error.message : null;
+  const errorMsg = update.error?.message ?? null;
 
   return (
     <Stack gap="md">
@@ -173,29 +156,14 @@ export function SettingsPage() {
                         <TimeInput
                           disabled={!isOpen}
                           placeholder="—"
-                          value={isOpen && day.status === 'open' ? day.start : ''}
-                          onChange={(e) => {
-                            if (!isOpen) return;
-                            form.setFieldValue(
-                              `workingHours.${key}.start`,
-                              e.currentTarget.value,
-                            );
-                          }}
+                          {...form.getInputProps(`workingHours.${key}.start`)}
                         />
                       </Table.Td>
                       <Table.Td>
                         <TimeInput
                           disabled={!isOpen}
                           placeholder="—"
-                          value={isOpen && day.status === 'open' ? day.end : ''}
-                          onChange={(e) => {
-                            if (!isOpen) return;
-                            form.setFieldValue(
-                              `workingHours.${key}.end`,
-                              e.currentTarget.value,
-                            );
-                          }}
-                          error={form.errors[`workingHours.${key}.end`] as string | undefined}
+                          {...form.getInputProps(`workingHours.${key}.end`)}
                         />
                       </Table.Td>
                     </Table.Tr>
@@ -209,7 +177,7 @@ export function SettingsPage() {
               variant="subtle"
               type="button"
               disabled={!form.isDirty() || update.isPending}
-              onClick={() => settingsQ.data && form.setValues(toFormValues(settingsQ.data))}
+              onClick={() => form.setValues(toFormValues(savedSnapshot))}
             >
               Reset
             </Button>

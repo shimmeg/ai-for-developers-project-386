@@ -58,9 +58,16 @@ export function subscribeAdminToken(cb: () => void): () => void {
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
+  const handleStorage = (e: StorageEvent): void => {
     if (e.key === TOKEN_KEY || e.key === REJECTED_AT_KEY || e.key === null) {
       notify();
     }
-  });
+  };
+  window.addEventListener('storage', handleStorage);
+  if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+      window.removeEventListener('storage', handleStorage);
+      subscribers.clear();
+    });
+  }
 }
