@@ -7,6 +7,7 @@ import { SlotPickerPage } from './features/slot-picker/SlotPickerPage';
 import { ConfirmPage } from './features/booking/ConfirmPage';
 import { SuccessPage } from './features/booking/SuccessPage';
 import { SettingsPage } from './features/admin/SettingsPage';
+import { EventTypesPage } from './features/admin/EventTypesPage';
 import { NotFoundPage } from './features/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="settings" replace /> },
           { path: 'settings', element: <SettingsPage /> },
+          { path: 'event-types', element: <EventTypesPage /> },
         ],
       },
     ],

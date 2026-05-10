@@ -42,12 +42,6 @@ const ok = <T,>(data: T) =>
     error: undefined,
     response: new Response(JSON.stringify(data), { status: 200 }),
   });
-const fail = (status: number, message: string) =>
-  Promise.resolve({
-    data: undefined,
-    error: { code: 'x', message },
-    response: new Response('{}', { status }),
-  });
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
