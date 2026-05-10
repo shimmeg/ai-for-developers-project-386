@@ -92,6 +92,38 @@ interface AdminSettings {
 @route("/admin/event-types")
 interface AdminEventTypes {
   @doc("List all event types — both active and inactive — in display order.")
+  @opExample(#{
+    returnType: #[
+      #{
+        slug: "intro-call",
+        name: "Intro call",
+        description: "A quick 30-minute introduction chat to get to know each other and discuss your project.",
+        durationMinutes: 30,
+        active: true,
+      },
+      #{
+        slug: "deep-dive",
+        name: "Deep dive",
+        description: "Focused 60-minute discussion on a specific topic.",
+        durationMinutes: 60,
+        active: true,
+      },
+      #{
+        slug: "office-hours",
+        name: "Office hours",
+        description: "Drop in for 15 minutes to ask anything.",
+        durationMinutes: 15,
+        active: true,
+      },
+      #{
+        slug: "long-form",
+        name: "Long-form workshop",
+        description: "Hidden from the catalog; toggle on to publish.",
+        durationMinutes: 90,
+        active: false,
+      },
+    ],
+  })
   @get
   list(): EventType[] | UnauthorizedResponse;
 
@@ -99,6 +131,26 @@ interface AdminEventTypes {
     Create a new event type. The slug must be unique across all event types
     (active or not). Newly created event types are active by default.
     """)
+  @opExample(#{
+    parameters: #{
+      body: #{
+        slug: "deep-dive",
+        name: "Deep dive",
+        description: "Focused 60-minute discussion on a specific topic.",
+        durationMinutes: 60,
+      },
+    },
+    returnType: #{
+      statusCode: 201,
+      created: #{
+        slug: "deep-dive",
+        name: "Deep dive",
+        description: "Focused 60-minute discussion on a specific topic.",
+        durationMinutes: 60,
+        active: true,
+      },
+    },
+  })
   @post
   create(@body body: EventTypeCreate):
     | {
@@ -110,6 +162,16 @@ interface AdminEventTypes {
     | ConflictResponse;
 
   @doc("Get a single event type by slug (active or inactive).")
+  @opExample(#{
+    parameters: #{ slug: "intro-call" },
+    returnType: #{
+      slug: "intro-call",
+      name: "Intro call",
+      description: "A quick 30-minute introduction chat to get to know each other and discuss your project.",
+      durationMinutes: 30,
+      active: true,
+    },
+  })
   @get
   @route("/{slug}")
   get(
@@ -122,6 +184,19 @@ interface AdminEventTypes {
     duration snapshot taken at booking time). Editing `slug` is subject to the
     same uniqueness and format rules as creation.
     """)
+  @opExample(#{
+    parameters: #{
+      slug: "intro-call",
+      body: #{ name: "Intro chat", durationMinutes: 20 },
+    },
+    returnType: #{
+      slug: "intro-call",
+      name: "Intro chat",
+      description: "A quick 30-minute introduction chat to get to know each other and discuss your project.",
+      durationMinutes: 20,
+      active: true,
+    },
+  })
   @patch
   @route("/{slug}")
   update(@path slug: EventTypeSlug, @body body: EventTypeUpdate):
