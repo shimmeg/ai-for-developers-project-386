@@ -35,6 +35,8 @@ One-command dev (contract watcher + Prism + Vite, all in one process):
 npm run dev:full
 ```
 
+> **Note on the dev mock:** Prism returns the contract's example bodies for any `X-Admin-Token` header value — it does not enforce token validity. Token-rejection paths are exercised via Vitest unit tests against a mocked client; do not assume the dev server replicates real-backend authentication behaviour.
+
 Or run each piece separately in three terminals:
 
 ```bash
@@ -97,8 +99,9 @@ When a real backend lands the long-term plan is to switch to an `HttpOnly` cooki
 src/
 ├── api/                  # openapi-fetch client, generated types, query/mutation hooks
 ├── components/           # shared building blocks (Layout, ErrorState, EmptyState, …)
-├── features/             # one folder per route group (catalog, slot-picker, booking)
-├── lib/                  # env, queryClient, theme
+├── features/             # one folder per route group (catalog, slot-picker, booking, admin)
+├── lib/                  # env, queryClient, theme, datetime, timezones, adminToken,
+│                         #   useAdminToken, httpError
 ├── test/                 # Vitest setup + smoke tests
 └── main.tsx              # bootstrap: providers, router
 ```

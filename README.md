@@ -7,6 +7,12 @@ A simple Calendly-style booking service built as a Hexlet learning project. A si
 
 > **Status:** v1 is in early development. Behaviour spec and API contract are in place; frontend and backend implementations will follow.
 
+## Security — do not deploy this version publicly
+
+v1 has **no real authentication**. The owner-only `/admin/*` endpoints are protected by a single shared `X-Admin-Token` configured per-deployment, and the frontend stores that token in `localStorage`. There is no per-user account model, no password rotation, no rate limiting, and no email verification of guest bookings. This is an explicit non-goal for the learning slice and is documented in [`docs/business-description.md`](docs/business-description.md) §5.
+
+**Do not deploy this version on the public internet.** Run it locally or behind a private network only. Real authentication, CSRF protection, and account management land in a future version.
+
 ## Repository structure
 
 | Path | Purpose |
