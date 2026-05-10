@@ -53,7 +53,7 @@ Open [http://localhost:5173](http://localhost:5173) and walk the guest happy pat
 1. **Catalog** at `/` — lists active event types from `GET /event-types`.
 2. **Slot picker** at `/events/:slug` — 14-day grid from `GET /event-types/:slug/slots`. Click a slot to select it.
 3. **Confirm** at `/events/:slug/confirm?slot=…` — Mantine form with Zod validation; `POST /event-types/:slug/bookings` on submit.
-4. **Success** at `/events/:slug/success?bookingId=…` — confirmation details.
+4. **Success** at `/events/:slug/booked/:id` — confirmation details.
 
 ## Pointing at a real backend
 

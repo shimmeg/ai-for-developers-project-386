@@ -13,21 +13,27 @@ const OpenDay = z
 
 const WorkingDay = z.discriminatedUnion('status', [ClosedDay, OpenDay]);
 
-export const SettingsFormSchema = z.object({
-  timezone: z
-    .string()
-    .min(1, 'Timezone is required')
-    .refine((v) => SUPPORTED_TIMEZONES.has(v), 'Pick a recognised IANA timezone'),
-  workingHours: z.object({
-    monday: WorkingDay,
-    tuesday: WorkingDay,
-    wednesday: WorkingDay,
-    thursday: WorkingDay,
-    friday: WorkingDay,
-    saturday: WorkingDay,
-    sunday: WorkingDay,
-  }),
-});
+export function createSettingsFormSchema(extraAllowedTimezones: readonly string[] = []) {
+  const extra = new Set(extraAllowedTimezones.filter(Boolean));
+
+  return z.object({
+    timezone: z
+      .string()
+      .min(1, 'Timezone is required')
+      .refine((v) => SUPPORTED_TIMEZONES.has(v) || extra.has(v), 'Pick a recognised IANA timezone'),
+    workingHours: z.object({
+      monday: WorkingDay,
+      tuesday: WorkingDay,
+      wednesday: WorkingDay,
+      thursday: WorkingDay,
+      friday: WorkingDay,
+      saturday: WorkingDay,
+      sunday: WorkingDay,
+    }),
+  });
+}
+
+export const SettingsFormSchema = createSettingsFormSchema();
 
 export type SettingsFormValues = z.infer<typeof SettingsFormSchema>;
 

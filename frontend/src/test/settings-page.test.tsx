@@ -21,6 +21,11 @@ const exampleSettings: OwnerSettings = {
   },
 };
 
+const legacyTimezoneSettings: OwnerSettings = {
+  ...exampleSettings,
+  timezone: 'Etc/Calendar_Legacy',
+};
+
 const getMock = vi.fn();
 const putMock = vi.fn();
 
@@ -85,6 +90,21 @@ describe('SettingsPage', () => {
     const body = (options as { body: OwnerSettings }).body;
     expect(body.workingHours.saturday).toMatchObject({ status: 'open' });
     expect(body.workingHours.sunday).toEqual({ status: 'closed' });
+  });
+
+  it('allows saving the current server timezone when it is not in Intl.supportedValuesOf', async () => {
+    getMock.mockReturnValue(ok(legacyTimezoneSettings));
+    putMock.mockReturnValue(ok(legacyTimezoneSettings));
+    renderPage();
+    await screen.findByDisplayValue('Etc/Calendar_Legacy');
+
+    const satRow = screen.getByText('Saturday').closest('tr')!;
+    await userEvent.click(within(satRow).getByRole('switch'));
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(putMock).toHaveBeenCalledTimes(1));
+    const [, options] = putMock.mock.calls[0];
+    expect((options as { body: OwnerSettings }).body.timezone).toBe('Etc/Calendar_Legacy');
   });
 
   it('shows the 400 error message in a top-level alert', async () => {

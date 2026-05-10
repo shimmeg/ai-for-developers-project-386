@@ -25,7 +25,7 @@ import { ErrorState } from '../../components/ErrorState';
 import { withCurrentTimezone } from '../../lib/timezones';
 import { HttpError } from '../../lib/httpError';
 import {
-  SettingsFormSchema,
+  createSettingsFormSchema,
   type SettingsFormValues,
   normalizeSettings,
 } from './settings-schema';
@@ -62,11 +62,12 @@ const EMPTY_FORM: SettingsFormValues = {
 export function SettingsPage() {
   const settingsQ = useAdminSettings();
   const update = useUpdateAdminSettings();
+  const currentTimezone = settingsQ.data?.timezone;
 
   const form = useForm<SettingsFormValues>({
     mode: 'controlled',
     initialValues: EMPTY_FORM,
-    validate: zod4Resolver(SettingsFormSchema),
+    validate: zod4Resolver(createSettingsFormSchema(currentTimezone ? [currentTimezone] : [])),
   });
 
   useEffect(() => {
