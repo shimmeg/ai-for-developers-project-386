@@ -8,10 +8,106 @@ What's left after the [v1 vertical slice](README.md). Phases are independently s
 |---|---|---|
 | 1 | Foundations + guest happy path (catalog → slot picker → confirm → success) | ✅ Shipped |
 | 2 | Admin token + settings | ✅ Shipped (PR #4, merged 2026-05-10) |
-| 3 | Admin event-type CRUD | 🟡 In review (PR #5) |
-| 4 | Admin bookings (list + cancel) | ⬜ Next |
+| 3 | Admin event-type CRUD | ✅ Shipped (PR #5, merged 2026-05-10) |
+| 4 | Admin bookings (list + cancel) | 🟡 Next — see [Phase 4 section](#phase-4--admin-bookings) below |
 | 5 | Cross-cutting polish (code-split, a11y, tests, CI) | ⬜ |
 | 6 | Real backend integration | ⬜ |
+
+---
+
+## Conventions established in Phases 1-3
+
+Read this section first if you're starting a new phase cold. These are the patterns to mirror — drift from them only with a deliberate reason.
+
+### Architecture
+
+- **Two `openapi-fetch` clients**: [`apiClient`](src/api/client.ts) for the public surface, [`adminClient`](src/api/adminClient.ts) for `/admin/*`. The admin client injects `X-Admin-Token` from [`lib/adminToken.ts`](src/lib/adminToken.ts) and clears storage on a 401 *only when the sent token still matches the stored one* (prevents a late stale 401 from stomping a fresh valid token). Never put admin endpoints on `apiClient` or vice versa.
+- **Admin auth is route-level**: `<AdminGate>` (in [`components/AdminGate.tsx`](src/components/AdminGate.tsx)) is the outermost wrapper of `/admin/*`. It renders [`AdminTokenModal`](src/features/admin/AdminTokenModal.tsx) when no token is stored, otherwise the outlet. New admin pages don't add any per-page auth — they just live under that branch in [`routes.tsx`](src/routes.tsx).
+- **Admin chrome**: add new admin pages under `<AdminLayout>` ([`components/AdminLayout.tsx`](src/components/AdminLayout.tsx)) and add a `<AdminNavLink>` for the page in the header `Group`. Phase 4's "Bookings" link sits next to the existing Settings / Event types links.
+- **Sibling routing**: `/admin/*` is a top-level branch in [`routes.tsx`](src/routes.tsx), *not* nested inside the guest `<Layout>` — the guest "Calendar / Guest booking" header must never appear around an admin page.
+
+### TanStack Query hooks
+
+- **One file per query group** under [`api/queries/`](src/api/queries). Each file exports a `*Keys` object, the typed hooks, and (for admin) re-exports the relevant contract types from `components['schemas']`.
+- **`HttpError` carrier**: every admin hook throws [`HttpError`](src/lib/httpError.ts) on a non-2xx (`new HttpError(response.status, error.code, error.message)`). Don't `throw error` from openapi-fetch directly — the status is the load-bearing field for retry/rollback decisions.
+- **Disable retries on 4xx**: every admin hook has `retry: (count, err) => isHttp4xx(err) ? false : count < 1`. Prevents a 401 (which `adminClient` already cleared the token for) from triggering a duplicate request.
+- **Optimistic mutation pattern** (Phase 3's active toggle, Phase 4's cancel will use the same shape):
+
+  ```ts
+  useMutation<Result, HttpError, Vars, { previous?: T[] }>({
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<T[]>(queryKey);
+      queryClient.setQueryData<T[]>(queryKey, /* optimistic next state */);
+      return { previous };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(queryKey, ctx.previous);
+      notifications.show({ color: 'red', title: 'Failed', message: err.message });
+    },
+    onSuccess: () => notifications.show({ color: 'green', title: 'Done' }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
+  ```
+
+### TypeScript
+
+- **Strict mode is on** ([`tsconfig.app.json`](tsconfig.app.json) `"strict": true`). New code must be null-safe.
+- **`openapi-fetch` narrowing quirk**: with `strictNullChecks`, the success branch of `{ data, error, response }` makes `data` non-nullable, so `if (!data) throw …` after `if (res.error) throw …` narrows to `never`. Just `return res.data` after the error check — see Phase 2's [`api/queries/settings.ts`](src/api/queries/settings.ts) for the canonical pattern.
+
+### Forms (`@mantine/form` + Zod)
+
+- **Schemas mirror the contract exactly**: regex / min / max constraints come from `contract/models.tsp`. The `slug` regex in Phase 3 ([`features/admin/event-type-schema.ts`](src/features/admin/event-type-schema.ts)) and the timezone-list in Phase 2 ([`features/admin/settings-schema.ts`](src/features/admin/settings-schema.ts)) are good templates.
+- **Resolver**: `zod4Resolver` from `mantine-form-zod-resolver`. Don't reach for `react-hook-form`; the codebase is consistent on Mantine's form.
+- **PATCH diffing**: edit forms send only changed fields (Phase 3's [`diffEventType`](src/features/admin/event-type-schema.ts) helper). Don't send the whole record — and disable Save when `!form.isDirty()` so empty submits are unreachable.
+
+### Contract (`@opExample`)
+
+- Every admin endpoint that the UI consumes gets `@opExample` decorators in [`contract/admin.tsp`](../contract/admin.tsp) so Prism in static mode returns realistic data. The list endpoint should include enough variety to exercise UI states (active + inactive, empty notes vs. populated notes, etc.).
+- After editing the contract, `npm run gen:api` from `frontend/` rebuilds the OpenAPI YAML and regenerates `src/api/types.ts`.
+
+### Testing
+
+- **Vitest + RTL + jsdom** with the polyfills already in [`src/test/setup.ts`](src/test/setup.ts) — `localStorage` (jsdom 29 + `about:blank` URL doesn't expose it), `matchMedia`, `ResizeObserver`, `document.fonts` (Mantine's `Textarea` autosize). New tests don't need to repeat these; just import-by-side-effect via the configured `setupFiles`.
+- **Mock the admin client at the module boundary** for component tests, e.g.:
+
+  ```ts
+  vi.mock('../api/adminClient', () => ({
+    adminClient: {
+      GET: (...args: unknown[]) => getMock(...args),
+      POST: (...args: unknown[]) => postMock(...args),
+      PATCH: (...args: unknown[]) => patchMock(...args),
+      DELETE: (...args: unknown[]) => deleteMock(...args),
+    },
+  }));
+  ```
+- **Optimistic-mutation tests need deferred mocks**, otherwise the post-mutation `onSettled` invalidate triggers a refetch that resets the row before the assertion sees the optimistic flip. See `frontend/src/test/EventTypesPage.test.tsx` — the Phase 3 page test is the canonical example.
+- **Hook tests**: `renderHook` from `@testing-library/react`, wrap in a `QueryClientProvider`, prime cache via `queryClient.setQueryData(...)` if the hook needs state.
+
+### Times
+
+- All times are rendered in the owner's configured timezone (spec §3 first paragraph). Phase 1 helpers in [`lib/datetime.ts`](src/lib/datetime.ts):
+  - `formatHourMinute(iso, timezone)` — `09:00`-style.
+  - `formatFullHuman(iso, timezone)` — `Tuesday, 12 May 2026 at 09:00`-style.
+  - `formatDayHeader(isoDate)` — calendar date, no instant math, used by the slot picker.
+- The owner's timezone lives on `OwnerSettings.timezone` (admin) and `CatalogResponse.timezone` (public). Pull it from whichever query is closest to the page.
+- `<TimezoneBanner timezone={...} />` is the consistent label component — drop it on every admin page that shows wall-clock times.
+
+### Tools available
+
+- **Frontend review**: invoke the `frontend-reviewer` subagent (or the `/frontend-review` slash command) before opening a PR for any non-trivial slice. The agent runs read-only, exercises the gates, and returns a severity-grouped report. Skill is at `.claude/skills/frontend-review/SKILL.md`.
+- **Codex parallel review**: see how Phase 2 used it ([commit `a52a4c1`](https://github.com/shimmeg/ai-for-developers-project-386/commit/a52a4c1) and the codex-review thread in that PR's discussion). Useful as a second opinion alongside the frontend-reviewer subagent.
+
+### Pre-merge gate
+
+Every PR must pass:
+
+```bash
+cd contract && npm test
+cd frontend && npm run typecheck && npm run lint && npm test && npm run build
+```
+
+Phase 5 will codify this as a CI workflow.
 
 ---
 
@@ -70,19 +166,71 @@ What's left after the [v1 vertical slice](README.md). Phases are independently s
 
 ## Phase 4 — Admin bookings
 
-**Goal:** Owner can see upcoming bookings and cancel any of them.
+**Goal:** the owner can see upcoming bookings and cancel any one of them. Contract endpoints involved: `GET /admin/bookings` (returns `Booking[]` sorted by `startTime` ascending; past bookings excluded server-side; spec §2.3) and `DELETE /admin/bookings/{id}` (returns 204; 404 on stale id; 401 on missing/bad token).
 
-**Open UX questions:** confirmation modal copy for cancel; whether to show past bookings (contract only returns upcoming, but we may want a tab); empty-state copy.
+This is the last admin slice. After it lands the v1 admin surface is feature-complete and Phase 5 (polish, CI, a11y) becomes the natural next pickup.
 
-### Tasks
+### Open UX questions to brainstorm before coding
 
-- [ ] `GET /admin/bookings` query hook.
-- [ ] `DELETE /admin/bookings/{id}` mutation hook.
-- [ ] `/admin/bookings` list page:
-  - Table sorted by `startTime` ascending: date/time, event type, guest, email, notes (truncated).
-  - Per-row "Cancel" button → confirm modal → DELETE → optimistic remove + invalidate.
-  - Empty state.
-- [ ] Smoke tests: list render, cancel happy path, 404 on stale id.
+These should be settled in a brainstorming pass before writing the spec/plan — there is no single right answer:
+
+1. **Cancel confirmation UX** — single-button cancel (with toast "Booking cancelled" + Undo) vs. confirm modal ("Are you sure? This frees the slot."). Cancel is destructive (the slot becomes bookable again, the guest is silently uninformed in v1), so a confirm modal is a defensible default.
+2. **Empty state copy** — "No upcoming bookings" is clear; whether to add guidance ("Share an event-type link to start receiving bookings") is a small judgment call.
+3. **Time rendering** — the contract returns `startTime` with offset and the owner's `timezone` is on `OwnerSettings`. Phase 1 already established the `formatHourMinute(iso, tz)` / `formatFullHuman(iso, tz)` helpers in [`lib/datetime.ts`](src/lib/datetime.ts) — Phase 4 reuses them. Source the timezone from `useAdminSettings()` (already cached after the first admin visit).
+4. **Notes display** — the contract field is free-form text. Truncate to a couple of lines with a tooltip / popover, or render full inline? Tradeoff between density and readability.
+5. **Optimistic delete** — same pattern as Phase 3's active toggle (`onMutate` snapshots, `onError` rolls back, `onSuccess` notifies, `onSettled` invalidates). Probably the right call again, but worth a quick confirmation.
+
+### Plan sketch (refined during brainstorming)
+
+These are starting points, not commitments. The brainstorming pass will turn them into a spec and a TDD plan, mirroring the Phase 2 / Phase 3 shape ([Phase 3 spec](../docs/superpowers/specs/2026-05-10-admin-event-types-design.md), [Phase 3 plan](../docs/superpowers/plans/2026-05-10-admin-event-types.md)).
+
+**File map (proposed):**
+
+```
+contract/admin.tsp                                 # MODIFY: @opExample on AdminBookings.{list, cancel}
+frontend/src/
+├── api/queries/
+│   └── bookingsAdmin.ts                           # CREATE — useAdminBookings + useCancelBooking
+├── features/admin/
+│   ├── BookingsPage.tsx                           # CREATE — list + cancel
+│   └── CancelBookingModal.tsx                     # CREATE — confirm modal (decision pending)
+├── components/AdminLayout.tsx                     # MODIFY: add "Bookings" nav link
+├── routes.tsx                                     # MODIFY: add 'bookings' child route
+└── test/
+    ├── bookingsAdmin.test.tsx                     # CREATE — hook tests
+    ├── BookingsPage.test.tsx                      # CREATE — page + cancel tests
+    └── CancelBookingModal.test.tsx                # (only if a confirm modal is chosen)
+```
+
+**Tasks (TDD-style, ~6-8 expected after brainstorming):**
+
+- [ ] Add `@opExample` to `AdminBookings.list` (3-4 sample bookings spanning two event types — the same `intro-call` / `deep-dive` slugs Phase 1/3 use, so the rendered list looks coherent against Prism). Add `@opExample` to `AdminBookings.cancel` returning 204.
+- [ ] `bookingsAdmin.ts` — `useAdminBookings` (GET, `HttpError`, retry-false-on-4xx) and `useCancelBooking` (DELETE, optimistic remove, rollback, list-invalidate).
+- [ ] `BookingsPage.tsx` — table sorted by `startTime`: date/time (formatted via `formatFullHuman` in the owner timezone), event-type name, duration (`durationMinutesSnapshot` — *not* the live event-type duration, per spec §1.2), guest name, guest email, notes (truncated). Per-row Cancel button. Loading skeleton, `<ErrorState />`, empty state.
+- [ ] (If brainstorming chooses confirm modal) `CancelBookingModal.tsx` — Mantine Modal with the booking's start time + guest name + a destructive "Cancel booking" button. Sources timezone from `useAdminSettings`.
+- [ ] Wire the new route into `routes.tsx` and add the "Bookings" link to `<AdminLayout>` (sibling of Settings + Event types).
+- [ ] Smoke tests: list render, cancel happy path with optimistic remove + post-success notification, cancel rollback on 500, 404 on stale id, empty state.
+
+### Things worth verifying upfront against Prism
+
+Before writing the page, do this quick walk so the data model is concrete:
+
+```bash
+# from frontend/
+npm run gen:api                                              # rebuilds the contract
+npm run mock                                                  # in another shell
+curl -s -H 'X-Admin-Token: x' http://127.0.0.1:4010/admin/bookings | python3 -m json.tool
+```
+
+If Prism returns an empty array (no `@opExample` yet), the first task is the contract addition. If it returns nulls inside booking objects, the example needs more fields filled in.
+
+### Hard rules from the spec / contract (don't drift)
+
+- **Display `durationMinutesSnapshot`** from the booking record — *not* the live event-type duration ([business spec §1.2](../docs/business-description.md)). Editing an event type's duration must not retroactively change historical bookings.
+- **Past bookings are not displayed** in v1 (spec §2.3). The contract guarantees the GET returns only upcoming, so the page does not need to filter or hide anything client-side.
+- **No guest-side cancellation** is in v1 — cancel is owner-only.
+- **No email** is sent on cancel — surface this in the cancel-confirmation copy ("the guest is not notified") so the owner isn't surprised.
+- **Times are rendered in the owner's configured timezone**, not the browser's, with the timezone label on every page that shows times (spec §3 first paragraph and the Phase 1 review fix). Use [`lib/datetime.ts`](src/lib/datetime.ts).
 
 ---
 
