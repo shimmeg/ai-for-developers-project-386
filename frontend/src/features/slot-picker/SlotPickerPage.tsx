@@ -99,7 +99,7 @@ function SlotPickerView({ slug }: { slug: string }) {
         />
       )}
 
-      {eventTypeQ.data && slotsQ.data && (
+      {eventTypeQ.data && (
         <Stack gap="md">
           <Stack gap="xs">
             <Title order={2}>{eventTypeQ.data.name}</Title>
@@ -110,7 +110,7 @@ function SlotPickerView({ slug }: { slug: string }) {
             <Text>{eventTypeQ.data.description}</Text>
           </Stack>
 
-          <TimezoneBanner timezone={slotsQ.data.timezone} />
+          {slotsQ.data && <TimezoneBanner timezone={slotsQ.data.timezone} />}
 
           {slotsQ.isError && (
             <ErrorState
@@ -120,33 +120,37 @@ function SlotPickerView({ slug }: { slug: string }) {
             />
           )}
 
-          <ScrollArea>
-            <SimpleGrid cols={{ base: 2, sm: 4, md: 7 }} spacing="sm">
-              {slotsQ.data.days.map((day) => (
-                <DayColumn
-                  key={day.date}
-                  day={day}
-                  timezone={slotsQ.data.timezone}
-                  selectedSlot={validSelectedSlot}
-                  onSelect={handleSelect}
+          {slotsQ.data && (
+            <>
+              <ScrollArea>
+                <SimpleGrid cols={{ base: 2, sm: 4, md: 7 }} spacing="sm">
+                  {slotsQ.data.days.map((day) => (
+                    <DayColumn
+                      key={day.date}
+                      day={day}
+                      timezone={slotsQ.data.timezone}
+                      selectedSlot={validSelectedSlot}
+                      onSelect={handleSelect}
+                    />
+                  ))}
+                </SimpleGrid>
+              </ScrollArea>
+
+              {slotsQ.data.days.every((d) => d.status !== 'open' || d.slots.length === 0) && (
+                <EmptyState
+                  order={3}
+                  title="No slots available in the next 14 days"
+                  description="Please check back later."
                 />
-              ))}
-            </SimpleGrid>
-          </ScrollArea>
+              )}
 
-          {slotsQ.data.days.every((d) => d.status !== 'open' || d.slots.length === 0) && (
-            <EmptyState
-              order={3}
-              title="No slots available in the next 14 days"
-              description="Please check back later."
-            />
+              <Group justify="flex-end" mt="md">
+                <Button disabled={!validSelectedSlot} onClick={handleContinue}>
+                  Continue
+                </Button>
+              </Group>
+            </>
           )}
-
-          <Group justify="flex-end" mt="md">
-            <Button disabled={!validSelectedSlot} onClick={handleContinue}>
-              Continue
-            </Button>
-          </Group>
         </Stack>
       )}
     </Stack>

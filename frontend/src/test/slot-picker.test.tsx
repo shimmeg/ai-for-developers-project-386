@@ -28,23 +28,26 @@ const slotsData = {
   ],
 };
 
+const okResponse = <T,>(data: T) => ({
+  data,
+  error: undefined,
+  response: new Response(JSON.stringify(data), { status: 200 }),
+});
+
+const failResponse = (status: number, code: string, message: string) => ({
+  data: undefined,
+  error: { code, message },
+  response: new Response('{}', { status }),
+});
+
+const eventTypeResult = vi.fn();
+const slotsResult = vi.fn();
+
 vi.mock('../api/client', () => ({
   apiClient: {
     GET: vi.fn(async (path: string) => {
-      if (path === '/event-types/{slug}') {
-        return {
-          data: eventTypeData,
-          error: undefined,
-          response: new Response('{}', { status: 200 }),
-        };
-      }
-      if (path === '/event-types/{slug}/slots') {
-        return {
-          data: slotsData,
-          error: undefined,
-          response: new Response('{}', { status: 200 }),
-        };
-      }
+      if (path === '/event-types/{slug}') return eventTypeResult();
+      if (path === '/event-types/{slug}/slots') return slotsResult();
       throw new Error(`Unexpected path: ${path}`);
     }),
     POST: vi.fn(),
@@ -53,7 +56,10 @@ vi.mock('../api/client', () => ({
 }));
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  eventTypeResult.mockReset();
+  slotsResult.mockReset();
+  eventTypeResult.mockReturnValue(okResponse(eventTypeData));
+  slotsResult.mockReturnValue(okResponse(slotsData));
 });
 
 afterEach(() => {
@@ -110,5 +116,32 @@ describe('SlotPickerPage — ?slot= round-trip', () => {
     );
     await waitFor(() => expect(getLocation()?.search).toBe(''));
     expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
+  });
+});
+
+describe('SlotPickerPage — slots fetch failures', () => {
+  it('renders the slots error state with retry when slots fetch fails on first load', async () => {
+    slotsResult.mockReturnValue(failResponse(500, 'server_error', 'service unavailable'));
+    renderAt('/events/intro');
+
+    // The event-type header still renders so the user has context...
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Intro call' })).toBeInTheDocument(),
+    );
+
+    // ...and the slots panel surfaces a retry-able error instead of a blank picker.
+    expect(await screen.findByText(/couldn't load slots/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+
+    // No Continue button when slots haven't loaded.
+    expect(screen.queryByRole('button', { name: /continue/i })).not.toBeInTheDocument();
+  });
+
+  it('renders the slots 404 error message text', async () => {
+    slotsResult.mockReturnValue(failResponse(404, 'not_found', 'Event type not found'));
+    renderAt('/events/intro');
+
+    expect(await screen.findByText(/couldn't load slots/i)).toBeInTheDocument();
+    expect(screen.getByText(/event type not found/i)).toBeInTheDocument();
   });
 });

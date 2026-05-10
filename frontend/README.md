@@ -79,7 +79,7 @@ VITE_API_BASE_URL=http://localhost:8080
 | `gen:api`           | Build the contract and regenerate `src/api/types.ts`.                        |
 | `build`             | Type-check and produce a production bundle in `dist/`.                       |
 | `preview`           | Serve the production build locally.                                          |
-| `typecheck`         | Run `tsc --noEmit`.                                                          |
+| `typecheck`         | Run `tsc -b --noEmit` against the project references.                        |
 | `lint`              | Run ESLint.                                                                  |
 | `format`            | Run Prettier on the workspace.                                               |
 | `test`              | Run Vitest once.                                                             |
