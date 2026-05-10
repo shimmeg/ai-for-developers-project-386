@@ -1,8 +1,8 @@
 # Phase 3 — Admin event-types CRUD (design)
 
-**Status:** approved (2026-05-10), ready for implementation plan.
-**Branch:** `claude/admin-event-types` (sibling of `claude/admin-token-settings`).
-**Predecessor:** Phase 2 (admin token + `/admin/settings`) shipped on PR #4.
+**Status:** approved (2026-05-10), in review on PR #5.
+**Branch:** `claude/admin-event-types`.
+**Predecessor:** Phase 2 (admin token + `/admin/settings`) — PR #4 merged into `main` on 2026-05-10.
 
 ## Context
 

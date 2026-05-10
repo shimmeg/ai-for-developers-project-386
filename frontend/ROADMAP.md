@@ -7,9 +7,9 @@ What's left after the [v1 vertical slice](README.md). Phases are independently s
 | Phase | Scope | State |
 |---|---|---|
 | 1 | Foundations + guest happy path (catalog → slot picker → confirm → success) | ✅ Shipped |
-| 2 | Admin token + settings | ⬜ Next |
-| 3 | Admin event-type CRUD | ⬜ |
-| 4 | Admin bookings (list + cancel) | ⬜ |
+| 2 | Admin token + settings | ✅ Shipped (PR #4, merged 2026-05-10) |
+| 3 | Admin event-type CRUD | 🟡 In review (PR #5) |
+| 4 | Admin bookings (list + cancel) | ⬜ Next |
 | 5 | Cross-cutting polish (code-split, a11y, tests, CI) | ⬜ |
 | 6 | Real backend integration | ⬜ |
 

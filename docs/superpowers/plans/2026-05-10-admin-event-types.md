@@ -1424,7 +1424,7 @@ gh pr create --base main --head claude/admin-event-types \
 
 The design spec (`docs/superpowers/specs/2026-05-10-admin-event-types-design.md`) and the implementation plan (`docs/superpowers/plans/2026-05-10-admin-event-types.md`) are committed alongside the code.
 
-This PR depends on Phase 2 (PR #4). Will rebase once that merges.
+Phase 2 (PR #4) merged into `main` on 2026-05-10; this branch has been rebased on top of it.
 
 ## Test plan
 
