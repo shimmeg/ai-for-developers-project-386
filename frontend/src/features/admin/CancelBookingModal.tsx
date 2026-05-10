@@ -12,7 +12,15 @@ type Props = {
 
 export function CancelBookingModal({ opened, booking, timezone, onConfirm, onClose }: Props) {
   return (
-    <Modal opened={opened} onClose={onClose} title="Cancel booking" size="sm" centered>
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title="Cancel booking"
+      size="sm"
+      centered
+      closeOnEscape
+      closeOnClickOutside
+    >
       <Stack gap="md">
         <Text size="sm">
           This frees the slot for new bookings. The guest will not be notified by email.

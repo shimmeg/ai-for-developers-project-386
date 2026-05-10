@@ -26,11 +26,22 @@ function renderLayout() {
 }
 
 describe('AdminLayout', () => {
-  it('renders the admin brand and a Settings nav link', () => {
+  it('renders the admin brand and the three nav links', () => {
     setAdminToken('tok');
     renderLayout();
     expect(screen.getByText(/calendar \(admin\)/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^settings$/i })).toHaveAttribute(
+      'href',
+      '/admin/settings',
+    );
+    expect(screen.getByRole('link', { name: /^event types$/i })).toHaveAttribute(
+      'href',
+      '/admin/event-types',
+    );
+    expect(screen.getByRole('link', { name: /^bookings$/i })).toHaveAttribute(
+      'href',
+      '/admin/bookings',
+    );
     expect(screen.getByText('settings page')).toBeInTheDocument();
   });
 

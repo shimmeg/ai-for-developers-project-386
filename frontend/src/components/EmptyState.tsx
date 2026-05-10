@@ -3,6 +3,12 @@ import { Center, Stack, Text, Title, type TitleOrder } from '@mantine/core';
 type Props = {
   title: string;
   description?: string;
+  /**
+   * Heading level for the title. Should be one level deeper than the
+   * surrounding page heading so the document outline stays sequential
+   * (e.g. an h3 inside a page that owns an h2 title). Defaults to 4
+   * for backwards compatibility with the original h3-titled callers.
+   */
   order?: TitleOrder;
 };
 

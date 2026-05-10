@@ -29,7 +29,7 @@ type ModalState = { kind: 'closed' } | { kind: 'open'; booking: Booking };
 function PageHeader() {
   return (
     <Stack gap={4}>
-      <Title order={1}>Bookings</Title>
+      <Title order={2}>Bookings</Title>
       <Text c="dimmed" size="sm">
         All upcoming bookings across every event type, sorted by start time.
       </Text>
@@ -112,7 +112,7 @@ export function BookingsPage() {
         <Card withBorder p="xl">
           <Stack align="center" gap="sm">
             <EmptyState
-              order={2}
+              order={3}
               title="No upcoming bookings"
               description="Share an event-type link to start receiving bookings."
             />

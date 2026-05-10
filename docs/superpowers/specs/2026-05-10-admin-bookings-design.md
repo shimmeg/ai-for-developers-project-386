@@ -126,9 +126,11 @@ All upcoming bookings across every event type, sorted by start time.
    - On success: green toast `"Booking cancelled"`; `onSettled` invalidates the list query.
    - On error: `onError` rolls the cache back from `previous`; red toast surfaces `error.message`.
 
-### Per-row disabled state
+### Per-row disabled state — intentionally not implemented
 
-- While `cancel.isPending` for that row's `id`, the row's Cancel button is `disabled` and `loading`. The cancel hook tracks the in-flight `id` via the mutation's `variables` (TanStack Query exposes this on `cancel.variables`).
+- The earlier draft of this spec called for a `disabled` + `loading` indicator on the row's Cancel button driven by `cancel.isPending && cancel.variables?.id === booking.id`. That indicator is unreachable in practice: `onMutate` filters the row out of the cached list before the DELETE round-trips, so the row no longer renders by the time the mutation is "in flight".
+- The user-visible signal of a successful cancel is therefore the row vanishing + the green toast; the signal of a failed cancel is the row reappearing + the red toast (rollback path). No per-row spinner is rendered.
+- If a future phase changes the cancel UX so the row stays put while the DELETE is in flight (e.g., an inline confirm with a soft-delete state), the per-row disabled indicator can come back; until then it would be dead code.
 
 ## Confirm modal (`<CancelBookingModal />`)
 
@@ -252,7 +254,8 @@ Tests live in `frontend/src/test/` and follow the Phase 3 pattern of mocking `ad
 7. **Cancel happy path** — click Cancel → modal opens → click "Cancel booking" → row disappears immediately (optimistic) → success toast appears. (Uses the deferred-mock pattern from `EventTypesPage.test.tsx` so the optimistic state is observable before the post-`onSettled` refetch.)
 8. **Cancel rollback** — DELETE returns 500 → row reappears in the table; red toast visible.
 9. **Cancel — 404 stale id** — DELETE returns 404 → row reappears; red toast.
-10. **Per-row disabled while pending** — clicking Cancel disables that row's button; clicking it again does not fire a second DELETE.
+
+(The earlier draft listed a "Per-row disabled while pending" page test. It was dropped along with the per-row disabled state itself — see "Per-row disabled state — intentionally not implemented" above. The hook tests in `bookingsAdmin.test.tsx` cover the cancel cache mechanics.)
 
 ### Manual verification (after implementation)
 
