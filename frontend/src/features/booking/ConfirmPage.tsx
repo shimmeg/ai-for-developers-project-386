@@ -14,7 +14,7 @@ import {
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { IconAlertTriangle, IconArrowLeft, IconClock, IconCalendar } from '@tabler/icons-react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { z } from 'zod';
 import { useCatalog, useEventType } from '../../api/queries/eventTypes';
 import { useCreateBooking } from '../../api/queries/bookings';
@@ -33,25 +33,11 @@ type FormValues = z.infer<typeof formSchema>;
 export function ConfirmPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-
   const slot = searchParams.get('slot');
-
-  const eventTypeQ = useEventType(slug);
-  const catalogQ = useCatalog();
-  const timezone = catalogQ.data?.timezone;
-  const createBooking = useCreateBooking();
-
-  const form = useForm<FormValues>({
-    mode: 'uncontrolled',
-    initialValues: { guestName: '', guestEmail: '', guestNotes: '' },
-    validate: zod4Resolver(formSchema),
-  });
 
   if (!slug) {
     return <ErrorState title="Missing event type" message="No event type was specified." />;
   }
-
   if (!slot) {
     return (
       <Stack gap="md">
@@ -64,6 +50,22 @@ export function ConfirmPage() {
       </Stack>
     );
   }
+  return <ConfirmView slug={slug} slot={slot} />;
+}
+
+function ConfirmView({ slug, slot }: { slug: string; slot: string }) {
+  const navigate = useNavigate();
+
+  const eventTypeQ = useEventType(slug);
+  const catalogQ = useCatalog();
+  const timezone = catalogQ.data?.timezone;
+  const createBooking = useCreateBooking();
+
+  const form = useForm<FormValues>({
+    mode: 'uncontrolled',
+    initialValues: { guestName: '', guestEmail: '', guestNotes: '' },
+    validate: zod4Resolver(formSchema),
+  });
 
   const handleSubmit = (values: FormValues) => {
     createBooking.mutate(
@@ -86,7 +88,9 @@ export function ConfirmPage() {
     );
   };
 
-  const failure = createBooking.error?.failure;
+  const eventTypeError = eventTypeQ.error;
+  const eventTypeNotFound = eventTypeError?.status === 404;
+  const bookingError = createBooking.error;
 
   return (
     <Stack gap="md">
@@ -103,8 +107,19 @@ export function ConfirmPage() {
         </Group>
       )}
 
-      {eventTypeQ.isError && (
-        <ErrorState title="Couldn't load event type" onRetry={() => eventTypeQ.refetch()} />
+      {eventTypeQ.isError && eventTypeNotFound && (
+        <ErrorState
+          title="Event type not available"
+          message="This event type is no longer published. It may have been deactivated by the host."
+        />
+      )}
+
+      {eventTypeQ.isError && !eventTypeNotFound && (
+        <ErrorState
+          title="Couldn't load event type"
+          message={eventTypeError?.message ?? 'The booking service is unreachable.'}
+          onRetry={() => eventTypeQ.refetch()}
+        />
       )}
 
       {eventTypeQ.data && (
@@ -131,7 +146,7 @@ export function ConfirmPage() {
             </Stack>
           </Paper>
 
-          {failure?.kind === 'conflict' && (
+          {bookingError?.status === 409 && (
             <Alert color="orange" icon={<IconAlertTriangle />} title="Slot is no longer available">
               <Stack gap="xs">
                 <Text size="sm">
@@ -144,15 +159,21 @@ export function ConfirmPage() {
             </Alert>
           )}
 
-          {failure?.kind === 'notFound' && (
+          {bookingError?.status === 404 && (
             <Alert color="red" icon={<IconAlertTriangle />}>
               This event type is no longer available.
             </Alert>
           )}
 
-          {(failure?.kind === 'badRequest' || failure?.kind === 'other') && (
-            <Alert color="red" icon={<IconAlertTriangle />} title="Booking failed">
-              {failure.message}
+          {bookingError?.status === 400 && (
+            <Alert color="red" icon={<IconAlertTriangle />} title="Please check your details">
+              The booking service rejected this request. Review the form fields below and try again.
+            </Alert>
+          )}
+
+          {bookingError && bookingError.status !== 409 && bookingError.status !== 404 && bookingError.status !== 400 && (
+            <Alert color="red" icon={<IconAlertTriangle />} title="The booking service is unreachable">
+              Please try again in a moment. If the problem persists, contact the host directly.
             </Alert>
           )}
 

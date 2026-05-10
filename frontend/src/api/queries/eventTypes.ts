@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../client';
 import type { components } from '../types';
+import { HttpError, toHttpError } from '../../lib/httpError';
 
 export type CatalogResponse = components['schemas']['CatalogResponse'];
 export type PublicEventType = components['schemas']['PublicEventType'];
@@ -12,29 +13,28 @@ export const eventTypesKeys = {
 };
 
 export function useCatalog() {
-  return useQuery({
+  return useQuery<CatalogResponse, HttpError>({
     queryKey: eventTypesKeys.catalog(),
-    queryFn: async (): Promise<CatalogResponse> => {
-      const { data, error } = await apiClient.GET('/event-types');
-      if (error) throw error;
-      if (!data) throw new Error('Empty catalog response');
-      return data;
+    queryFn: async () => {
+      const res = await apiClient.GET('/event-types');
+      // The catalog endpoint declares only a 200 in the contract, so `res.error`
+      // is typed as `undefined`. Detect runtime failures via missing data.
+      if (!res.data) throw toHttpError(undefined, res.response, 'Failed to load catalog');
+      return res.data;
     },
   });
 }
 
-export function useEventType(slug: string | undefined) {
-  return useQuery({
-    queryKey: slug ? eventTypesKeys.detail(slug) : eventTypesKeys.all,
-    enabled: Boolean(slug),
-    queryFn: async (): Promise<PublicEventType> => {
-      if (!slug) throw new Error('Missing event type slug');
-      const { data, error } = await apiClient.GET('/event-types/{slug}', {
+export function useEventType(slug: string) {
+  return useQuery<PublicEventType, HttpError>({
+    queryKey: eventTypesKeys.detail(slug),
+    queryFn: async () => {
+      const res = await apiClient.GET('/event-types/{slug}', {
         params: { path: { slug } },
       });
-      if (error) throw error;
-      if (!data) throw new Error('Empty event type response');
-      return data;
+      if (res.error) throw toHttpError(res.error, res.response, 'Failed to load event type');
+      if (!res.data) throw new HttpError(0, 'empty_response', 'Empty event type response');
+      return res.data;
     },
   });
 }

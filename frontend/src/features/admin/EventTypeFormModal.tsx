@@ -13,7 +13,6 @@ import {
   useUpdateEventType,
   type EventType,
 } from '../../api/queries/eventTypesAdmin';
-import { HttpError } from '../../lib/httpError';
 
 type Props =
   | { opened: boolean; onClose: () => void; mode: 'create' }
@@ -48,7 +47,7 @@ export function EventTypeFormModal(props: Props) {
   const createM = useCreateEventType();
   const updateM = useUpdateEventType();
   const pending = createM.isPending || updateM.isPending;
-  const error = (createM.error ?? updateM.error) as HttpError | null;
+  const error = createM.error ?? updateM.error;
 
   const slugConflict =
     error?.status === 409 ? 'This slug is already in use. Pick a different one.' : null;

@@ -8,3 +8,17 @@ export class HttpError extends Error {
     this.code = code;
   }
 }
+
+export type ApiErrorEnvelope = { code?: string; message?: string };
+
+export function toHttpError(
+  envelope: ApiErrorEnvelope | undefined,
+  response: { status: number },
+  fallbackMessage = 'Request failed',
+): HttpError {
+  return new HttpError(
+    response.status,
+    envelope?.code ?? 'http_error',
+    envelope?.message && envelope.message.length > 0 ? envelope.message : fallbackMessage,
+  );
+}

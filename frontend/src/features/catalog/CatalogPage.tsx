@@ -1,6 +1,6 @@
 import { Card, Group, Loader, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { IconClock } from '@tabler/icons-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useCatalog, type PublicEventType } from '../../api/queries/eventTypes';
 import { ErrorState } from '../../components/ErrorState';
 import { EmptyState } from '../../components/EmptyState';
@@ -36,6 +36,7 @@ export function CatalogPage() {
           <TimezoneBanner timezone={data.timezone} />
           {data.eventTypes.length === 0 ? (
             <EmptyState
+              order={3}
               title="No event types are published yet"
               description="Check back later — the calendar owner hasn't created any bookable event types."
             />
@@ -61,8 +62,7 @@ function EventTypeCard({ eventType }: { eventType: PublicEventType }) {
       padding="lg"
       radius="md"
       style={{ textDecoration: 'none', color: 'inherit' }}
-      role="link"
-      aria-label={`Book ${eventType.name}`}
+      aria-label={`View available slots for ${eventType.name}`}
     >
       <Stack gap="xs">
         <Title order={4}>{eventType.name}</Title>

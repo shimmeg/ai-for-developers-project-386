@@ -1,10 +1,7 @@
 let cached: string[] | null = null;
 
 function loadList(): string[] {
-  // Intl.supportedValuesOf is supported in all browsers we target.
-  // Throws TypeError on older runtimes; let it bubble.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const list = (Intl as any).supportedValuesOf?.('timeZone');
+  const list = Intl.supportedValuesOf?.('timeZone');
   return Array.isArray(list) ? list : [];
 }
 

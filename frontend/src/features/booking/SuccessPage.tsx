@@ -1,6 +1,6 @@
 import { Alert, Anchor, Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
 import { IconCheck, IconCalendar, IconClock, IconUser, IconMail } from '@tabler/icons-react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router';
 import type { Booking } from '../../api/queries/bookings';
 import { useCatalog } from '../../api/queries/eventTypes';
 import { TimezoneBanner } from '../../components/TimezoneBanner';

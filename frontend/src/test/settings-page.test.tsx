@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { SettingsPage } from '../features/admin/SettingsPage';
 import type { OwnerSettings } from '../api/queries/settings';
 
@@ -62,13 +62,19 @@ const ok = (data: OwnerSettings) =>
     response: new Response(JSON.stringify(data), { status: 200 }),
   });
 
+// The timezone field renders both a visible combobox and a hidden form input,
+// so prefer finding the visible one by role/name to avoid double matches.
+const findTimezoneInput = (value: string) =>
+  screen.findByRole('combobox', { name: /timezone/i }).then((el) => {
+    expect(el).toHaveValue(value);
+    return el;
+  });
+
 describe('SettingsPage', () => {
   it('renders fetched settings into the form', async () => {
     getMock.mockReturnValue(ok(exampleSettings));
     renderPage();
-    await waitFor(() =>
-      expect(screen.getByDisplayValue('Europe/Moscow')).toBeInTheDocument(),
-    );
+    await findTimezoneInput('Europe/Moscow');
     expect(screen.getAllByDisplayValue('09:00').length).toBeGreaterThan(0);
   });
 
@@ -76,7 +82,7 @@ describe('SettingsPage', () => {
     getMock.mockReturnValue(ok(exampleSettings));
     putMock.mockReturnValue(ok(exampleSettings));
     renderPage();
-    await screen.findByDisplayValue('Europe/Moscow');
+    await findTimezoneInput('Europe/Moscow');
 
     const satRow = screen.getByText('Saturday').closest('tr')!;
     await userEvent.click(within(satRow).getByRole('switch'));
@@ -96,7 +102,7 @@ describe('SettingsPage', () => {
     getMock.mockReturnValue(ok(legacyTimezoneSettings));
     putMock.mockReturnValue(ok(legacyTimezoneSettings));
     renderPage();
-    await screen.findByDisplayValue('Etc/Calendar_Legacy');
+    await findTimezoneInput('Etc/Calendar_Legacy');
 
     const satRow = screen.getByText('Saturday').closest('tr')!;
     await userEvent.click(within(satRow).getByRole('switch'));
@@ -117,7 +123,7 @@ describe('SettingsPage', () => {
       }),
     );
     renderPage();
-    await screen.findByDisplayValue('Europe/Moscow');
+    await findTimezoneInput('Europe/Moscow');
 
     const sunRow = screen.getByText('Sunday').closest('tr')!;
     await userEvent.click(within(sunRow).getByRole('switch'));
