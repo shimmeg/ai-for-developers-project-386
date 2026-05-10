@@ -219,6 +219,52 @@ interface AdminBookings {
     List all upcoming bookings across every event type, sorted by start time
     ascending. Past bookings are not returned. There is no pagination in v1.
     """)
+  @opExample(#{
+    returnType: #[
+      #{
+        id: "5b3f8a2c-e7f4-4a1b-9c5d-2f7e8b0a6d3c",
+        eventTypeSlug: "intro-call",
+        eventTypeName: "Intro call",
+        startTime: offsetDateTime.fromISO("2026-05-12T10:00:00+03:00"),
+        durationMinutesSnapshot: 30,
+        guestName: "Jane Doe",
+        guestEmail: "jane.doe@example.com",
+        guestNotes: "Looking forward to chatting about the project. Background: I'm a backend engineer evaluating tooling choices for our team's next quarter.",
+        createdAt: offsetDateTime.fromISO("2026-05-09T14:23:11+03:00"),
+      },
+      #{
+        id: "8a1c2d4e-9f6b-4c3a-bd5e-1f8a3c7d6e2b",
+        eventTypeSlug: "deep-dive",
+        eventTypeName: "Deep dive",
+        startTime: offsetDateTime.fromISO("2026-05-12T14:00:00+03:00"),
+        durationMinutesSnapshot: 60,
+        guestName: "Sam Patel",
+        guestEmail: "sam.patel@example.com",
+        createdAt: offsetDateTime.fromISO("2026-05-10T09:14:02+03:00"),
+      },
+      #{
+        id: "c2d4e6f8-1a3b-5c7d-9e0f-2b4d6f8a0c1e",
+        eventTypeSlug: "office-hours",
+        eventTypeName: "Office hours",
+        startTime: offsetDateTime.fromISO("2026-05-13T09:30:00+03:00"),
+        durationMinutesSnapshot: 15,
+        guestName: "Mei Chen",
+        guestEmail: "mei.chen@example.com",
+        guestNotes: "Quick question about timezones.",
+        createdAt: offsetDateTime.fromISO("2026-05-10T11:02:55+03:00"),
+      },
+      #{
+        id: "ff00aa11-bb22-cc33-dd44-ee55ff66aa77",
+        eventTypeSlug: "intro-call",
+        eventTypeName: "Intro call",
+        startTime: offsetDateTime.fromISO("2026-05-15T15:30:00+03:00"),
+        durationMinutesSnapshot: 30,
+        guestName: "Alex Müller",
+        guestEmail: "alex.mueller@example.de",
+        createdAt: offsetDateTime.fromISO("2026-05-10T16:48:21+03:00"),
+      },
+    ],
+  })
   @get
   list(): Booking[] | UnauthorizedResponse;
 
@@ -226,6 +272,10 @@ interface AdminBookings {
     Cancel an upcoming booking. The booking is removed (or marked cancelled —
     server's choice) and its time slot becomes immediately available again.
     """)
+  @opExample(#{
+    parameters: #{ id: "5b3f8a2c-e7f4-4a1b-9c5d-2f7e8b0a6d3c" },
+    returnType: #{ statusCode: 204 },
+  })
   @delete
   @route("/{id}")
   cancel(@path id: BookingId): {
