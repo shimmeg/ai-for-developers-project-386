@@ -20,6 +20,7 @@ export function AdminLayout() {
               <Group gap="md">
                 <AdminNavLink to="/admin/settings">Settings</AdminNavLink>
                 <AdminNavLink to="/admin/event-types">Event types</AdminNavLink>
+                <AdminNavLink to="/admin/bookings">Bookings</AdminNavLink>
               </Group>
             </Group>
             <Group gap="md">
