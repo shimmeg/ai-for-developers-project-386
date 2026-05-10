@@ -63,3 +63,17 @@ class ResizeObserverMock {
   disconnect() {}
 }
 window.ResizeObserver = window.ResizeObserver ?? (ResizeObserverMock as typeof ResizeObserver);
+
+// jsdom does not expose document.fonts; Mantine's autosize Textarea listens on
+// it for loading-state events. Provide a minimal stub so the components mount.
+if (typeof document !== 'undefined' && !document.fonts) {
+  Object.defineProperty(document, 'fonts', {
+    configurable: true,
+    value: {
+      ready: Promise.resolve(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    },
+  });
+}
