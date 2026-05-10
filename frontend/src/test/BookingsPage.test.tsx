@@ -81,12 +81,6 @@ const ok = <T,>(data: T) =>
     error: undefined,
     response: new Response(JSON.stringify(data), { status: 200 }),
   });
-const noContent = () =>
-  Promise.resolve({
-    data: undefined,
-    error: undefined,
-    response: new Response(null, { status: 204 }),
-  });
 const fail = (status: number, code: string, message: string) =>
   Promise.resolve({
     data: undefined,
