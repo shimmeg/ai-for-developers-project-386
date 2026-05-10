@@ -46,7 +46,8 @@ export function useCancelBooking() {
       }
       return { previous };
     },
-    onError: (_err, _vars, ctx) => {
+    onError: (err, _vars, ctx) => {
+      if (err.status === 404) return;
       if (ctx?.previous) queryClient.setQueryData(bookingsAdminKeys.all, ctx.previous);
     },
     onSettled: () => {

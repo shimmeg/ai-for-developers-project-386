@@ -148,6 +148,18 @@ describe('useCancelBooking', () => {
     expect(qc.getQueryData<Booking[]>(bookingsAdminKeys.all)).toEqual([b1, b2]);
   });
 
+  it('keeps the row removed when the DELETE returns 404', async () => {
+    deleteMock.mockReturnValueOnce(fail(404, 'not_found', 'gone'));
+    const { qc, Provider } = makeWrapper();
+    qc.setQueryData<Booking[]>(bookingsAdminKeys.all, [b1, b2]);
+    const { result } = renderHook(() => useCancelBooking(), { wrapper: Provider });
+
+    result.current.mutate({ id: b1.id });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(qc.getQueryData<Booking[]>(bookingsAdminKeys.all)).toEqual([b2]);
+  });
+
   it('invalidates the list on success', async () => {
     deleteMock.mockReturnValueOnce(ok204());
     const { qc, Provider } = makeWrapper();
