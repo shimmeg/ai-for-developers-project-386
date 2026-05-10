@@ -57,6 +57,35 @@ Open [http://localhost:5173](http://localhost:5173) and walk the guest happy pat
 3. **Confirm** at `/events/:slug/confirm?slot=…` — Mantine form with Zod validation; `POST /event-types/:slug/bookings` on submit.
 4. **Success** at `/events/:slug/booked/:id` — confirmation details.
 
+### Admin flows
+
+Visit `/admin/settings` or `/admin/event-types`. The token modal appears on first admin visit. Against the Prism mock you can type **any value** — it's not enforced (see the dev-mock note above). Against a real backend, supply the deployment-configured `X-Admin-Token`.
+
+- **Settings** (`/admin/settings`) — change timezone or working hours, Save → success notification, refresh persists (Prism replays the example body).
+- **Event types** (`/admin/event-types`) — list, toggle active (optimistic update), create, edit. Slug-conflict UX is exercised when the contract returns 409.
+- **Sign out** clears the stored token; the modal re-appears on the next admin route visit.
+
+### Failure-mode behaviour worth knowing
+
+Prism only returns example success bodies, so error paths are easiest to reach by stopping the mock and reloading:
+
+- **Slots fetch fails** — the slot picker shows the event-type header followed by a "Couldn't load slots" alert with a Retry button (the picker grid is hidden until slots load).
+- **Inactive event type (404)** — both the slot picker and the booking confirm page render a dedicated "Event type not available" message instead of a generic error.
+- **Booking 409** — the confirm page shows "Slot is no longer available" with a link back to the picker; the slot cache is invalidated automatically.
+
+Token rejection (401) and the booking-flow status branches (400/404/409/5xx) are exercised in unit tests under `src/test/`; see `AdminTokenModal.test.tsx` and `bookings-conflict.test.tsx`.
+
+## Automated checks
+
+```bash
+npm run typecheck      # tsc -b --noEmit
+npm run lint           # eslint .
+npm run test           # vitest run
+npm run build          # tsc -b && vite build
+```
+
+All four should pass on a clean checkout. `npm test` works without a `.env` file (the Vitest config supplies a default `VITE_API_BASE_URL`).
+
 ## Pointing at a real backend
 
 The frontend doesn't care whether `VITE_API_BASE_URL` is Prism, a real local backend, or a deployed API. To point at something else, set the variable in `.env`:
