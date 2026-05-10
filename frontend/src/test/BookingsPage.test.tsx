@@ -136,6 +136,9 @@ describe('BookingsPage', () => {
     expect(await screen.findByText(/couldn't load bookings/i)).toBeInTheDocument();
     expect(screen.getByText(/server boom/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+    // The page still owns its h1 even on error branches so screen-reader users
+    // have the "Bookings" anchor regardless of state.
+    expect(screen.getByRole('heading', { level: 1, name: /bookings/i })).toBeInTheDocument();
   });
 
   it('shows the settings ErrorState when settings fails', async () => {

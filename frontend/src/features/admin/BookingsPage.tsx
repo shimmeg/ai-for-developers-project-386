@@ -3,8 +3,6 @@ import {
   Anchor,
   Button,
   Card,
-  Center,
-  Group,
   Skeleton,
   Stack,
   Table,
@@ -14,6 +12,7 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { Link } from 'react-router';
+import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
 import { TimezoneBanner } from '../../components/TimezoneBanner';
 import { useAdminSettings } from '../../api/queries/settings';
@@ -27,6 +26,17 @@ import { CancelBookingModal } from './CancelBookingModal';
 
 type ModalState = { kind: 'closed' } | { kind: 'open'; booking: Booking };
 
+function PageHeader() {
+  return (
+    <Stack gap={4}>
+      <Title order={1}>Bookings</Title>
+      <Text c="dimmed" size="sm">
+        All upcoming bookings across every event type, sorted by start time.
+      </Text>
+    </Stack>
+  );
+}
+
 export function BookingsPage() {
   const settingsQ = useAdminSettings();
   const bookingsQ = useAdminBookings();
@@ -35,28 +45,34 @@ export function BookingsPage() {
 
   if (settingsQ.isError) {
     return (
-      <ErrorState
-        title="Couldn't load settings"
-        message={settingsQ.error.message}
-        onRetry={() => settingsQ.refetch()}
-      />
+      <Stack gap="md">
+        <PageHeader />
+        <ErrorState
+          title="Couldn't load settings"
+          message={settingsQ.error.message}
+          onRetry={() => settingsQ.refetch()}
+        />
+      </Stack>
     );
   }
 
   if (bookingsQ.isError) {
     return (
-      <ErrorState
-        title="Couldn't load bookings"
-        message={bookingsQ.error.message}
-        onRetry={() => bookingsQ.refetch()}
-      />
+      <Stack gap="md">
+        <PageHeader />
+        <ErrorState
+          title="Couldn't load bookings"
+          message={bookingsQ.error.message}
+          onRetry={() => bookingsQ.refetch()}
+        />
+      </Stack>
     );
   }
 
   if (settingsQ.isPending || bookingsQ.isPending) {
     return (
       <Stack gap="md">
-        <Title order={1}>Bookings</Title>
+        <PageHeader />
         <Skeleton h={20} w={240} />
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} h={48} />
@@ -74,11 +90,7 @@ export function BookingsPage() {
       { id: booking.id },
       {
         onSuccess: () => {
-          notifications.show({
-            color: 'green',
-            title: 'Booking cancelled',
-            message: '',
-          });
+          notifications.show({ color: 'green', title: 'Booking cancelled', message: '' });
         },
         onError: (err) => {
           notifications.show({
@@ -93,27 +105,21 @@ export function BookingsPage() {
 
   return (
     <Stack gap="md">
-      <Stack gap={4}>
-        <Title order={1}>Bookings</Title>
-        <Text c="dimmed" size="sm">
-          All upcoming bookings across every event type, sorted by start time.
-        </Text>
-      </Stack>
+      <PageHeader />
       <TimezoneBanner timezone={timezone} />
 
       {items.length === 0 ? (
         <Card withBorder p="xl">
-          <Center>
-            <Stack align="center" gap="sm">
-              <Title order={4}>No upcoming bookings</Title>
-              <Text c="dimmed" size="sm">
-                Share an event-type link to start receiving bookings.
-              </Text>
-              <Anchor component={Link} to="/admin/event-types" size="sm">
-                Manage event types
-              </Anchor>
-            </Stack>
-          </Center>
+          <Stack align="center" gap="sm">
+            <EmptyState
+              order={2}
+              title="No upcoming bookings"
+              description="Share an event-type link to start receiving bookings."
+            />
+            <Anchor component={Link} to="/admin/event-types" size="sm">
+              Manage event types
+            </Anchor>
+          </Stack>
         </Card>
       ) : (
         <Table>
@@ -129,52 +135,44 @@ export function BookingsPage() {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {items.map((booking) => {
-              const isCancellingThis =
-                cancel.isPending && cancel.variables?.id === booking.id;
-              return (
-                <Table.Tr key={booking.id}>
-                  <Table.Td>{formatFullHuman(booking.startTime, timezone)}</Table.Td>
-                  <Table.Td>{booking.eventTypeName}</Table.Td>
-                  <Table.Td>{booking.durationMinutesSnapshot} min</Table.Td>
-                  <Table.Td>{booking.guestName}</Table.Td>
-                  <Table.Td>{booking.guestEmail}</Table.Td>
-                  <Table.Td>
-                    {booking.guestNotes ? (
-                      <Tooltip
-                        label={booking.guestNotes}
-                        multiline
-                        w={320}
-                        withArrow
-                        events={{ hover: true, focus: true, touch: true }}
-                      >
-                        <Text size="sm" lineClamp={1} maw={240}>
-                          {booking.guestNotes}
-                        </Text>
-                      </Tooltip>
-                    ) : (
-                      <Text size="sm" c="dimmed">
-                        —
+            {items.map((booking) => (
+              <Table.Tr key={booking.id}>
+                <Table.Td>{formatFullHuman(booking.startTime, timezone)}</Table.Td>
+                <Table.Td>{booking.eventTypeName}</Table.Td>
+                <Table.Td>{booking.durationMinutesSnapshot} min</Table.Td>
+                <Table.Td>{booking.guestName}</Table.Td>
+                <Table.Td>{booking.guestEmail}</Table.Td>
+                <Table.Td>
+                  {booking.guestNotes ? (
+                    <Tooltip
+                      label={booking.guestNotes}
+                      multiline
+                      w={320}
+                      withArrow
+                      events={{ hover: true, focus: true, touch: true }}
+                    >
+                      <Text size="sm" lineClamp={1} maw={240}>
+                        {booking.guestNotes}
                       </Text>
-                    )}
-                  </Table.Td>
-                  <Table.Td>
-                    <Group justify="flex-end">
-                      <Button
-                        variant="subtle"
-                        color="red"
-                        size="xs"
-                        loading={isCancellingThis}
-                        disabled={isCancellingThis}
-                        onClick={() => setModal({ kind: 'open', booking })}
-                      >
-                        Cancel
-                      </Button>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              );
-            })}
+                    </Tooltip>
+                  ) : (
+                    <Text size="sm" c="dimmed">
+                      —
+                    </Text>
+                  )}
+                </Table.Td>
+                <Table.Td ta="right">
+                  <Button
+                    variant="subtle"
+                    color="red"
+                    size="xs"
+                    onClick={() => setModal({ kind: 'open', booking })}
+                  >
+                    Cancel
+                  </Button>
+                </Table.Td>
+              </Table.Tr>
+            ))}
           </Table.Tbody>
         </Table>
       )}
