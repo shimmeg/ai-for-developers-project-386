@@ -27,7 +27,7 @@ import { CancelBookingModal } from './CancelBookingModal';
 const NOTES_PREVIEW_LIMIT = 80;
 
 function truncate(text: string, n: number): string {
-  return text.length > n ? text.slice(0, n) + '…' : text;
+  return text.length > n ? text.slice(0, n).trimEnd() + '…' : text;
 }
 
 type ConfirmState = { kind: 'closed' } | { kind: 'open'; booking: Booking };
@@ -82,7 +82,10 @@ export function BookingsPage() {
             setConfirm({ kind: 'closed' });
             return;
           }
+          // Non-404: rollback restored the row; close the modal and rely on
+          // the toast for feedback. The owner can re-trigger from the row.
           notifications.show({ color: 'red', title: 'Cancel failed', message: err.message });
+          setConfirm({ kind: 'closed' });
         },
       },
     );
@@ -127,11 +130,12 @@ export function BookingsPage() {
           </Table.Thead>
           <Table.Tbody>
             {items.map((b) => {
-              const notesPreview = b.guestNotes ? truncate(b.guestNotes, NOTES_PREVIEW_LIMIT) : '';
-              const truncated = !!b.guestNotes && b.guestNotes.length > NOTES_PREVIEW_LIMIT;
+              const formattedStart = formatFullHuman(b.startTime, timezone);
+              const truncated =
+                !!b.guestNotes && b.guestNotes.length > NOTES_PREVIEW_LIMIT;
               return (
                 <Table.Tr key={b.id}>
-                  <Table.Td>{formatFullHuman(b.startTime, timezone)}</Table.Td>
+                  <Table.Td>{formattedStart}</Table.Td>
                   <Table.Td>{b.eventTypeName}</Table.Td>
                   <Table.Td>{b.durationMinutesSnapshot} min</Table.Td>
                   <Table.Td>
@@ -143,16 +147,26 @@ export function BookingsPage() {
                     </Stack>
                   </Table.Td>
                   <Table.Td>
-                    {notesPreview ? (
-                      truncated ? (
-                        <Tooltip multiline w={320} label={b.guestNotes}>
-                          <Text size="sm" style={{ cursor: 'help' }}>
-                            {notesPreview}
-                          </Text>
-                        </Tooltip>
-                      ) : (
-                        <Text size="sm">{notesPreview}</Text>
-                      )
+                    {b.guestNotes ? (
+                      <Tooltip
+                        multiline
+                        w={320}
+                        label={b.guestNotes}
+                        disabled={!truncated}
+                        events={{ hover: true, focus: true, touch: true }}
+                      >
+                        <Text
+                          component="span"
+                          size="sm"
+                          tabIndex={truncated ? 0 : undefined}
+                          aria-label={truncated ? b.guestNotes : undefined}
+                          style={truncated ? { cursor: 'help' } : undefined}
+                        >
+                          {truncated
+                            ? truncate(b.guestNotes, NOTES_PREVIEW_LIMIT)
+                            : b.guestNotes}
+                        </Text>
+                      </Tooltip>
                     ) : (
                       <Text size="sm" c="dimmed">
                         —
@@ -164,6 +178,7 @@ export function BookingsPage() {
                       color="red"
                       variant="subtle"
                       size="xs"
+                      aria-label={`Cancel ${b.eventTypeName} with ${b.guestName} on ${formattedStart}`}
                       onClick={() => setConfirm({ kind: 'open', booking: b })}
                     >
                       Cancel

@@ -31,9 +31,10 @@ export function CancelBookingModal({
       centered
       closeOnClickOutside={!isPending}
       closeOnEscape={!isPending}
+      aria-describedby="cancel-booking-summary cancel-booking-warning"
     >
       <Stack gap="md">
-        <Stack gap={4}>
+        <Stack gap={4} id="cancel-booking-summary">
           <Text>
             <strong>{booking.eventTypeName}</strong> with {booking.guestName}
           </Text>
@@ -42,11 +43,16 @@ export function CancelBookingModal({
           </Text>
           {booking.guestNotes && (
             <Text c="dimmed" size="sm" mt="xs">
-              {booking.guestNotes}
+              <strong>Notes:</strong> {booking.guestNotes}
             </Text>
           )}
         </Stack>
-        <Alert color="yellow" variant="light" icon={<IconAlertTriangle />}>
+        <Alert
+          id="cancel-booking-warning"
+          color="yellow"
+          variant="light"
+          icon={<IconAlertTriangle />}
+        >
           The guest is not notified by email in v1. The slot will become available again
           immediately.
         </Alert>

@@ -165,7 +165,7 @@ describe('BookingsPage', () => {
     mockListAndSettings(bookings);
     renderPage();
     const janeRow = (await screen.findByText('Jane Doe')).closest('tr')!;
-    await userEvent.click(within(janeRow).getByRole('button', { name: /^cancel$/i }));
+    await userEvent.click(within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }));
     const dialog = await screen.findByRole('dialog', { name: /cancel booking/i });
     expect(within(dialog).getByText('Intro call')).toBeInTheDocument();
     expect(within(dialog).getByText(/jane doe/i)).toBeInTheDocument();
@@ -181,7 +181,7 @@ describe('BookingsPage', () => {
     );
     renderPage();
     const janeRow = (await screen.findByText('Jane Doe')).closest('tr')!;
-    await userEvent.click(within(janeRow).getByRole('button', { name: /^cancel$/i }));
+    await userEvent.click(within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }));
     await screen.findByRole('dialog', { name: /cancel booking/i });
     await userEvent.click(screen.getByRole('button', { name: /^cancel booking$/i }));
 
@@ -209,7 +209,7 @@ describe('BookingsPage', () => {
     );
     renderPage();
     const janeRow = (await screen.findByText('Jane Doe')).closest('tr')!;
-    await userEvent.click(within(janeRow).getByRole('button', { name: /^cancel$/i }));
+    await userEvent.click(within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }));
     await userEvent.click(screen.getByRole('button', { name: /^cancel booking$/i }));
 
     await waitFor(() => expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument());
@@ -221,6 +221,10 @@ describe('BookingsPage', () => {
     });
 
     await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+    // Modal closes on non-404 error too — owner re-triggers from the row.
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: /cancel booking/i })).not.toBeInTheDocument(),
+    );
   });
 
   it('treats a 404 cancel as a benign race ("Already cancelled")', async () => {
@@ -228,7 +232,7 @@ describe('BookingsPage', () => {
     deleteMock.mockReturnValueOnce(fail(404, 'gone'));
     renderPage();
     const janeRow = (await screen.findByText('Jane Doe')).closest('tr')!;
-    await userEvent.click(within(janeRow).getByRole('button', { name: /^cancel$/i }));
+    await userEvent.click(within(janeRow).getByRole('button', { name: /cancel intro call with jane doe/i }));
     await userEvent.click(screen.getByRole('button', { name: /^cancel booking$/i }));
 
     expect(await screen.findByText(/already cancelled/i)).toBeInTheDocument();
