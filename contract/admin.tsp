@@ -27,6 +27,20 @@ alias AdminAuth = ApiKeyAuth<ApiKeyLocation.header, "X-Admin-Token">;
 @route("/admin/settings")
 interface AdminSettings {
   @doc("Get the current owner settings (timezone + weekly working hours).")
+  @opExample(#{
+    returnType: #{
+      timezone: "Europe/Moscow",
+      workingHours: #{
+        monday: #{ status: "open", start: "09:00", end: "18:00" },
+        tuesday: #{ status: "open", start: "09:00", end: "18:00" },
+        wednesday: #{ status: "open", start: "09:00", end: "18:00" },
+        thursday: #{ status: "open", start: "09:00", end: "18:00" },
+        friday: #{ status: "open", start: "09:00", end: "17:00" },
+        saturday: #{ status: "closed" },
+        sunday: #{ status: "closed" },
+      },
+    },
+  })
   @get
   get(): OwnerSettings | UnauthorizedResponse;
 
@@ -35,6 +49,34 @@ interface AdminSettings {
     valid IANA name; for every `open` day, `end` must be strictly greater than
     `start`. Existing bookings are not affected by changes here.
     """)
+  @opExample(#{
+    parameters: #{
+      settings: #{
+        timezone: "Europe/Moscow",
+        workingHours: #{
+          monday: #{ status: "open", start: "10:00", end: "19:00" },
+          tuesday: #{ status: "open", start: "10:00", end: "19:00" },
+          wednesday: #{ status: "open", start: "10:00", end: "19:00" },
+          thursday: #{ status: "open", start: "10:00", end: "19:00" },
+          friday: #{ status: "open", start: "10:00", end: "16:00" },
+          saturday: #{ status: "closed" },
+          sunday: #{ status: "closed" },
+        },
+      },
+    },
+    returnType: #{
+      timezone: "Europe/Moscow",
+      workingHours: #{
+        monday: #{ status: "open", start: "10:00", end: "19:00" },
+        tuesday: #{ status: "open", start: "10:00", end: "19:00" },
+        wednesday: #{ status: "open", start: "10:00", end: "19:00" },
+        thursday: #{ status: "open", start: "10:00", end: "19:00" },
+        friday: #{ status: "open", start: "10:00", end: "16:00" },
+        saturday: #{ status: "closed" },
+        sunday: #{ status: "closed" },
+      },
+    },
+  })
   @put
   update(
     @body settings: OwnerSettings,

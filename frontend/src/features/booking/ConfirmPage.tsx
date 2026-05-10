@@ -14,12 +14,13 @@ import {
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { IconAlertTriangle, IconArrowLeft, IconClock, IconCalendar } from '@tabler/icons-react';
-import dayjs from 'dayjs';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
-import { useEventType } from '../../api/queries/eventTypes';
+import { useCatalog, useEventType } from '../../api/queries/eventTypes';
 import { useCreateBooking } from '../../api/queries/bookings';
 import { ErrorState } from '../../components/ErrorState';
+import { TimezoneBanner } from '../../components/TimezoneBanner';
+import { formatFullHuman } from '../../lib/datetime';
 
 const formSchema = z.object({
   guestName: z.string().trim().min(1, 'Please enter your name').max(120),
@@ -37,6 +38,8 @@ export function ConfirmPage() {
   const slot = searchParams.get('slot');
 
   const eventTypeQ = useEventType(slug);
+  const catalogQ = useCatalog();
+  const timezone = catalogQ.data?.timezone;
   const createBooking = useCreateBooking();
 
   const form = useForm<FormValues>({
@@ -75,7 +78,7 @@ export function ConfirmPage() {
       },
       {
         onSuccess: (booking) => {
-          navigate(`/events/${slug}/success?bookingId=${booking.id}`, {
+          navigate(`/events/${slug}/booked/${booking.id}`, {
             state: { booking },
           });
         },
@@ -111,11 +114,15 @@ export function ConfirmPage() {
             <Text c="dimmed">{eventTypeQ.data.name}</Text>
           </Stack>
 
+          {timezone && <TimezoneBanner timezone={timezone} />}
+
           <Paper withBorder p="md" radius="md">
             <Stack gap="xs">
               <Group gap="xs">
                 <IconCalendar size={16} aria-hidden />
-                <Text fw={500}>{dayjs(slot).format('dddd, MMM D, YYYY [at] HH:mm')}</Text>
+                <Text fw={500}>
+                  {timezone ? formatFullHuman(slot, timezone) : slot}
+                </Text>
               </Group>
               <Group gap="xs" c="dimmed">
                 <IconClock size={14} aria-hidden />

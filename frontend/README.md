@@ -53,7 +53,7 @@ Open [http://localhost:5173](http://localhost:5173) and walk the guest happy pat
 1. **Catalog** at `/` — lists active event types from `GET /event-types`.
 2. **Slot picker** at `/events/:slug` — 14-day grid from `GET /event-types/:slug/slots`. Click a slot to select it.
 3. **Confirm** at `/events/:slug/confirm?slot=…` — Mantine form with Zod validation; `POST /event-types/:slug/bookings` on submit.
-4. **Success** at `/events/:slug/success?bookingId=…` — confirmation details.
+4. **Success** at `/events/:slug/booked/:id` — confirmation details.
 
 ## Pointing at a real backend
 
@@ -81,6 +81,15 @@ VITE_API_BASE_URL=http://localhost:8080
 | `lint`              | Run ESLint.                                                                  |
 | `format`            | Run Prettier on the workspace.                                               |
 | `test`              | Run Vitest once.                                                             |
+
+## Security note: admin token storage
+
+The admin `X-Admin-Token` is stored in `localStorage` so the owner does not have to re-enter it on every refresh. This is acceptable in v1 because:
+
+- The token is a single deployment-configured shared secret, not a per-user credential.
+- The frontend has a strict no-`dangerouslySetInnerHTML` / no-third-party-script-tags policy, so any XSS would have to be introduced deliberately during development.
+
+When a real backend lands the long-term plan is to switch to an `HttpOnly` cookie (with a CSRF strategy). Tracked in [`ROADMAP.md`](ROADMAP.md) under Phase 6.
 
 ## Project layout
 

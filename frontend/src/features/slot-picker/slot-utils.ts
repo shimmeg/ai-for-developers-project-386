@@ -1,17 +1,6 @@
-import dayjs from 'dayjs';
 import type { DayStatus } from '../../api/queries/slots';
 
-export function formatSlotTime(iso: string): string {
-  return dayjs(iso).format('HH:mm');
-}
-
-export function formatDayHeader(isoDate: string): { weekday: string; date: string } {
-  const d = dayjs(isoDate);
-  return {
-    weekday: d.format('ddd'),
-    date: d.format('MMM D'),
-  };
-}
+export { formatHourMinute as formatSlotTime, formatDayHeader } from '../../lib/datetime';
 
 export function statusLabel(status: DayStatus): string {
   switch (status) {

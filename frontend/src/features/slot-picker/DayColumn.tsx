@@ -4,11 +4,12 @@ import { formatDayHeader, formatSlotTime, statusColor, statusLabel } from './slo
 
 type Props = {
   day: DaySlots;
+  timezone: string;
   selectedSlot: string | null;
   onSelect: (slotIso: string) => void;
 };
 
-export function DayColumn({ day, selectedSlot, onSelect }: Props) {
+export function DayColumn({ day, timezone, selectedSlot, onSelect }: Props) {
   const { weekday, date } = formatDayHeader(day.date);
   return (
     <Card withBorder padding="sm" radius="md" h="100%">
@@ -20,12 +21,7 @@ export function DayColumn({ day, selectedSlot, onSelect }: Props) {
           <Text size="xs" c="dimmed">
             {date}
           </Text>
-          <Badge
-            color={statusColor(day.status)}
-            variant="light"
-            size="sm"
-            mt={4}
-          >
+          <Badge color={statusColor(day.status)} variant="light" size="sm" mt={4}>
             {statusLabel(day.status)}
           </Badge>
         </Stack>
@@ -42,7 +38,7 @@ export function DayColumn({ day, selectedSlot, onSelect }: Props) {
                   onClick={() => onSelect(slot)}
                   aria-pressed={isSelected}
                 >
-                  {formatSlotTime(slot)}
+                  {formatSlotTime(slot, timezone)}
                 </Button>
               );
             })}

@@ -46,5 +46,13 @@ export function useCreateBooking() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: slotsKeys.forSlug(variables.slug) });
     },
+    onError: (error, variables) => {
+      // 409 (slot taken / event type just became inactive) and 404 (event type
+      // gone) both mean the slot picker is now stale — invalidate so the next
+      // visit re-fetches instead of showing the user the slot they just lost.
+      if (error.failure.kind === 'conflict' || error.failure.kind === 'notFound') {
+        queryClient.invalidateQueries({ queryKey: slotsKeys.forSlug(variables.slug) });
+      }
+    },
   });
 }
