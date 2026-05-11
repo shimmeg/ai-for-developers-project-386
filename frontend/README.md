@@ -98,20 +98,20 @@ VITE_API_BASE_URL=http://localhost:8080
 
 ## Scripts
 
-| Script              | What it does                                                                 |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `dev`               | Run the Vite dev server.                                                     |
-| `dev:full`          | Run contract watcher + Prism mock + Vite together (via `concurrently`).      |
-| `mock`              | Run Prism against the contract-generated OpenAPI on port 4010.               |
-| `contract:build`    | Build the OpenAPI YAML from the TypeSpec contract.                           |
-| `contract:watch`    | Watch and rebuild the contract on changes.                                   |
-| `gen:api`           | Build the contract and regenerate `src/api/types.ts`.                        |
-| `build`             | Type-check and produce a production bundle in `dist/`.                       |
-| `preview`           | Serve the production build locally.                                          |
-| `typecheck`         | Run `tsc -b --noEmit` against the project references.                        |
-| `lint`              | Run ESLint.                                                                  |
-| `format`            | Run Prettier on the workspace.                                               |
-| `test`              | Run Vitest once.                                                             |
+| Script           | What it does                                                            |
+| ---------------- | ----------------------------------------------------------------------- |
+| `dev`            | Run the Vite dev server.                                                |
+| `dev:full`       | Run contract watcher + Prism mock + Vite together (via `concurrently`). |
+| `mock`           | Run Prism against the contract-generated OpenAPI on port 4010.          |
+| `contract:build` | Build the OpenAPI YAML from the TypeSpec contract.                      |
+| `contract:watch` | Watch and rebuild the contract on changes.                              |
+| `gen:api`        | Build the contract and regenerate `src/api/types.ts`.                   |
+| `build`          | Type-check and produce a production bundle in `dist/`.                  |
+| `preview`        | Serve the production build locally.                                     |
+| `typecheck`      | Run `tsc -b --noEmit` against the project references.                   |
+| `lint`           | Run ESLint.                                                             |
+| `format`         | Run Prettier on the workspace.                                          |
+| `test`           | Run Vitest once.                                                        |
 
 ## Security note: admin token storage
 

@@ -4,14 +4,14 @@ What's left after the [v1 vertical slice](README.md). Phases are independently s
 
 ## Status
 
-| Phase | Scope | State |
-|---|---|---|
-| 1 | Foundations + guest happy path (catalog → slot picker → confirm → success) | ✅ Shipped |
-| 2 | Admin token + settings | ✅ Shipped (PR #4, merged 2026-05-10) |
-| 3 | Admin event-type CRUD | ✅ Shipped (PR #5, merged 2026-05-10) |
-| 4 | Admin bookings (list + cancel) | ✅ Shipped (PR #9, merged 2026-05-11) |
-| 5 | Cross-cutting polish (code-split, a11y, tests, CI) | 🟡 Next |
-| 6 | Real backend integration | ⬜ |
+| Phase | Scope                                                                      | State                                 |
+| ----- | -------------------------------------------------------------------------- | ------------------------------------- |
+| 1     | Foundations + guest happy path (catalog → slot picker → confirm → success) | ✅ Shipped                            |
+| 2     | Admin token + settings                                                     | ✅ Shipped (PR #4, merged 2026-05-10) |
+| 3     | Admin event-type CRUD                                                      | ✅ Shipped (PR #5, merged 2026-05-10) |
+| 4     | Admin bookings (list + cancel)                                             | ✅ Shipped (PR #9, merged 2026-05-11) |
+| 5     | Cross-cutting polish (code-split, a11y, tests, CI)                         | 🟡 Next                               |
+| 6     | Real backend integration                                                   | ⬜                                    |
 
 ---
 
@@ -21,10 +21,10 @@ Read this section first if you're starting a new phase cold. These are the patte
 
 ### Architecture
 
-- **Two `openapi-fetch` clients**: [`apiClient`](src/api/client.ts) for the public surface, [`adminClient`](src/api/adminClient.ts) for `/admin/*`. The admin client injects `X-Admin-Token` from [`lib/adminToken.ts`](src/lib/adminToken.ts) and clears storage on a 401 *only when the sent token still matches the stored one* (prevents a late stale 401 from stomping a fresh valid token). Never put admin endpoints on `apiClient` or vice versa.
+- **Two `openapi-fetch` clients**: [`apiClient`](src/api/client.ts) for the public surface, [`adminClient`](src/api/adminClient.ts) for `/admin/*`. The admin client injects `X-Admin-Token` from [`lib/adminToken.ts`](src/lib/adminToken.ts) and clears storage on a 401 _only when the sent token still matches the stored one_ (prevents a late stale 401 from stomping a fresh valid token). Never put admin endpoints on `apiClient` or vice versa.
 - **Admin auth is route-level**: `<AdminGate>` (in [`components/AdminGate.tsx`](src/components/AdminGate.tsx)) is the outermost wrapper of `/admin/*`. It renders [`AdminTokenModal`](src/features/admin/AdminTokenModal.tsx) when no token is stored, otherwise the outlet. New admin pages don't add any per-page auth — they just live under that branch in [`routes.tsx`](src/routes.tsx).
 - **Admin chrome**: add new admin pages under `<AdminLayout>` ([`components/AdminLayout.tsx`](src/components/AdminLayout.tsx)) and add a `<AdminNavLink>` for the page in the header `Group`. Phase 4's "Bookings" link sits next to the existing Settings / Event types links.
-- **Sibling routing**: `/admin/*` is a top-level branch in [`routes.tsx`](src/routes.tsx), *not* nested inside the guest `<Layout>` — the guest "Calendar / Guest booking" header must never appear around an admin page.
+- **Sibling routing**: `/admin/*` is a top-level branch in [`routes.tsx`](src/routes.tsx), _not_ nested inside the guest `<Layout>` — the guest "Calendar / Guest booking" header must never appear around an admin page.
 
 ### TanStack Query hooks
 
@@ -38,7 +38,7 @@ Read this section first if you're starting a new phase cold. These are the patte
     onMutate: async (vars) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<T[]>(queryKey);
-      queryClient.setQueryData<T[]>(queryKey, /* optimistic next state */);
+      queryClient.setQueryData<T[]>(queryKey /* optimistic next state */);
       return { previous };
     },
     onError: (err, _vars, ctx) => {
@@ -81,6 +81,7 @@ Read this section first if you're starting a new phase cold. These are the patte
     },
   }));
   ```
+
 - **Optimistic-mutation tests need deferred mocks**, otherwise the post-mutation `onSettled` invalidate triggers a refetch that resets the row before the assertion sees the optimistic flip. See `frontend/src/test/EventTypesPage.test.tsx` — the Phase 3 page test is the canonical example.
 - **Hook tests**: `renderHook` from `@testing-library/react`, wrap in a `QueryClientProvider`, prime cache via `queryClient.setQueryData(...)` if the hook needs state.
 
@@ -132,7 +133,7 @@ Phase 5 will codify this as a CI workflow.
   - Client-side validation: `end > start` per open day; mirrors contract rule.
   - Submit → invalidate settings query; show success notification.
 - [ ] Smoke tests: settings page render, token modal capture, 401 → re-prompt flow.
-- [ ] Add `@example` decorators to `OwnerSettings`-related admin operations in the contract so Prism returns useful settings data. *(small contract change)*
+- [ ] Add `@example` decorators to `OwnerSettings`-related admin operations in the contract so Prism returns useful settings data. _(small contract change)_
 
 ---
 
@@ -176,11 +177,11 @@ The v1 admin surface is now feature-complete; Phase 5 (polish, CI, a11y) is the 
 - **404-as-benign-race for delete**: if the server returns 404 on a cancel, the hook's `onError` short-circuits without rolling back (the row was optimistically removed, the server agrees it's gone) and the page surfaces a gentler `"Already cancelled"` toast.
 - **Aria-labelled per-row destructive button**: every row's Cancel renders with `aria-label="Cancel {eventType} with {guestName} on {date}"` so screen-reader users know which row's button they're on.
 - **Tooltip-only-when-truncated for free-form text**: explicit `truncate()` at a fixed character limit; the tooltip only renders when the cell is actually clipped, and the trigger is a real interactive element (`<UnstyledButton>`) so the tooltip is keyboard-reachable.
-- **`PageHeader` hoisted across loading / error / data branches** so the `<h2>` landmark stays visible regardless of query state.
+- **`PageHeader` hoisted across loading / error / data branches** so the `<h1>` landmark stays visible regardless of query state.
 
 ### Hard rules from the spec / contract (don't drift)
 
-- **Display `durationMinutesSnapshot`** from the booking record — *not* the live event-type duration ([business spec §1.2](../docs/business-description.md)). Editing an event type's duration must not retroactively change historical bookings.
+- **Display `durationMinutesSnapshot`** from the booking record — _not_ the live event-type duration ([business spec §1.2](../docs/business-description.md)). Editing an event type's duration must not retroactively change historical bookings.
 - **Past bookings are not displayed** in v1 (spec §2.3). The contract guarantees the GET returns only upcoming, so the page does not need to filter or hide anything client-side.
 - **No guest-side cancellation** is in v1 — cancel is owner-only.
 - **No email** is sent on cancel — surface this in the cancel-confirmation copy ("the guest is not notified") so the owner isn't surprised.
@@ -194,8 +195,8 @@ These are independent tasks; each can be its own small PR.
 
 ### Tasks
 
-- [ ] **Code-split admin routes** — `React.lazy` + `Suspense` so the guest bundle stays small (current single bundle is ~563 KB minified).
-- [ ] **Route-level error boundary** — single `ErrorBoundary` wrapping `<Outlet />` to catch render errors per route.
+- [x] **Code-split admin routes** — `React.lazy` + `Suspense`. Admin pages now ship as separate chunks; guest entry no longer pulls them (main chunk: 353 KB, down from 724 KB). See [Phase 5 design spec](../docs/superpowers/specs/2026-05-11-phase-5-code-split-and-route-error-boundaries-design.md).
+- [x] **Route-level error boundary** — `errorElement` on an intermediate pass-through route inside each branch, so a leaf render error renders `<ErrorState>` inside the surrounding layout chrome rather than blanking the page. See [Phase 5 design spec](../docs/superpowers/specs/2026-05-11-phase-5-code-split-and-route-error-boundaries-design.md).
 - [ ] **Loading skeletons** — replace spinners with Mantine `Skeleton` shapes on catalog/slot-picker for less jumpy loading.
 - [ ] **Mobile responsive pass** — slot picker grid below `sm` breakpoint currently shows 2 columns; verify all admin tables/forms work below 600 px.
 - [ ] **Dark mode toggle** — `useMantineColorScheme` already wired; add a header switch.
@@ -217,15 +218,17 @@ These are independent tasks; each can be its own small PR.
 
 These came out of the independent review of Phase 1 + Phase 2 ([review prompt at `docs/...`]) and are deferred to Phase 5 since they aren't spec-blocking.
 
-- [ ] **Heading hierarchy** — give each route an explicit `Title order={1}` (the page title) and adjust `EmptyState` to take an `order` prop so it doesn't insert an h4 inside an h2 region.
-- [ ] **Form-input plumbing in SettingsPage** — replace the manual `value` / `onChange` / `error` triplets on the working-hours `TimeInput`s with `form.getInputProps('workingHours.<day>.<start|end>')` so per-field validation messages also appear on the `start` input.
-- [ ] **Centralised `pingAdmin` helper** — move `AdminTokenModal`'s raw `fetch` call into a typed helper that knows the contract path, so the URL isn't duplicated in feature code.
-- [ ] **Prettier hygiene** — run `npm run format` once across the tree to clear the 13 currently-unformatted files; pair with the CI step above.
-- [ ] **EmptyState `role`** — drop the redundant `role="link"` on the catalog `Card` (it already renders an anchor via React Router's `Link`).
-- [ ] **HMR-safe storage listener** — guard the `window.addEventListener('storage', …)` in `lib/adminToken.ts` with `import.meta.hot?.dispose(...)` so long Vite dev sessions don't accumulate listeners.
-- [ ] **Drop `as any`** in `lib/timezones.ts` once the lib config makes `Intl.supportedValuesOf` directly typed.
-- [ ] **Booking failure UX** — `BookingFailure.kind` has separate `'badRequest'` and `'other'` variants that the UI renders identically; either render distinct copy or collapse into one kind.
-- [ ] **`react-router-dom` → `react-router` v7** — the unified package; cosmetic but clears a deprecation pathway.
+**Status (2026-05-11):** all nine follow-ups are now closed. PR-A (Phase 5 hygiene) shipped #1 (heading hierarchy) and #4 (Prettier sweep); #2, #3, #5, #6, #7, #9 quietly landed during Phase 3 / 4 cleanup; #8 was verified at [src/features/booking/ConfirmPage.tsx](src/features/booking/ConfirmPage.tsx) — the UI renders distinct copy for `status === 400` vs. the fall-through "service is unreachable" case.
+
+- [x] **Heading hierarchy** — each route now renders a visible `<Title order={1} fz="h2">` page title (PR-A); brand marks in `Layout` / `AdminLayout` demoted to non-heading `Text`. `EmptyState` already accepts an `order` prop; callers pass `order={3}`.
+- [x] **Form-input plumbing in SettingsPage** — working-hours `TimeInput`s use `form.getInputProps('workingHours.<day>.<start|end>')` at [src/features/admin/SettingsPage.tsx](src/features/admin/SettingsPage.tsx).
+- [x] **Centralised `pingAdmin` helper** — `pingAdmin(token)` lives in [src/api/adminClient.ts](src/api/adminClient.ts); `AdminTokenModal` consumes it.
+- [x] **Prettier hygiene (frontend/ scope)** — `prettier --check .` from `frontend/` is clean (PR-A). Repo-wide sweep on accumulated docs/specs/plans outside `frontend/` deferred to Phase 5 follow-ups (see `docs/superpowers/plans/2026-05-11-phase-5-code-split-followups.md`, item 6).
+- [x] **EmptyState `role`** — no `role="link"` remains in `src/`.
+- [x] **HMR-safe storage listener** — `window.addEventListener('storage', …)` in [src/lib/adminToken.ts](src/lib/adminToken.ts) is guarded by `import.meta.hot?.dispose(...)`.
+- [x] **Drop `as any`** — [src/lib/timezones.ts](src/lib/timezones.ts) uses `Intl.supportedValuesOf?.('timeZone')` directly.
+- [x] **Booking failure UX** — `ConfirmPage` renders distinct copy for `bookingError.status === 400` ("Please check your details") and the fall-through ("service is unreachable").
+- [x] **`react-router-dom` → `react-router` v7** — `package.json` already on `react-router@^7.15.0`; no `react-router-dom` imports remain.
 
 ---
 

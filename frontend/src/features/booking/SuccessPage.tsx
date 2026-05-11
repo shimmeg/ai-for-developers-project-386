@@ -18,7 +18,10 @@ export function SuccessPage() {
   if (!booking) {
     return (
       <Stack gap="md">
-        <Alert color="blue" icon={<IconCheck />} title="Booking confirmed">
+        <Title order={1} fz="h2">
+          Booking confirmed
+        </Title>
+        <Alert color="blue" icon={<IconCheck />}>
           {bookingId
             ? `Your booking (${bookingId}) was created. Please contact the host with this id for the details — v1 doesn't keep them on the client after a refresh.`
             : 'Your booking was created.'}
@@ -32,7 +35,10 @@ export function SuccessPage() {
 
   return (
     <Stack gap="md">
-      <Alert color="green" icon={<IconCheck />} title="Booking confirmed">
+      <Title order={1} fz="h2">
+        Booking confirmed
+      </Title>
+      <Alert color="green" icon={<IconCheck />}>
         We've reserved your time slot. No email is sent in v1 — please save these details.
       </Alert>
 

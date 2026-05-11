@@ -125,7 +125,9 @@ function ConfirmView({ slug, slot }: { slug: string; slot: string }) {
       {eventTypeQ.data && (
         <Stack gap="md">
           <Stack gap="xs">
-            <Title order={2}>Confirm your booking</Title>
+            <Title order={1} fz="h2">
+              Confirm your booking
+            </Title>
             <Text c="dimmed">{eventTypeQ.data.name}</Text>
           </Stack>
 
@@ -135,9 +137,7 @@ function ConfirmView({ slug, slot }: { slug: string; slot: string }) {
             <Stack gap="xs">
               <Group gap="xs">
                 <IconCalendar size={16} aria-hidden />
-                <Text fw={500}>
-                  {timezone ? formatFullHuman(slot, timezone) : slot}
-                </Text>
+                <Text fw={500}>{timezone ? formatFullHuman(slot, timezone) : slot}</Text>
               </Group>
               <Group gap="xs" c="dimmed">
                 <IconClock size={14} aria-hidden />
@@ -171,11 +171,18 @@ function ConfirmView({ slug, slot }: { slug: string; slot: string }) {
             </Alert>
           )}
 
-          {bookingError && bookingError.status !== 409 && bookingError.status !== 404 && bookingError.status !== 400 && (
-            <Alert color="red" icon={<IconAlertTriangle />} title="The booking service is unreachable">
-              Please try again in a moment. If the problem persists, contact the host directly.
-            </Alert>
-          )}
+          {bookingError &&
+            bookingError.status !== 409 &&
+            bookingError.status !== 404 &&
+            bookingError.status !== 400 && (
+              <Alert
+                color="red"
+                icon={<IconAlertTriangle />}
+                title="The booking service is unreachable"
+              >
+                Please try again in a moment. If the problem persists, contact the host directly.
+              </Alert>
+            )}
 
           <form onSubmit={form.onSubmit(handleSubmit)}>
             <Stack gap="md">

@@ -22,10 +22,10 @@ function ok(json: unknown): Response {
 }
 
 function unauthorized(): Response {
-  return new Response(
-    JSON.stringify({ code: 'unauthorized', message: 'bad token' }),
-    { status: 401, headers: { 'Content-Type': 'application/json' } },
-  );
+  return new Response(JSON.stringify({ code: 'unauthorized', message: 'bad token' }), {
+    status: 401,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 describe('adminClient', () => {

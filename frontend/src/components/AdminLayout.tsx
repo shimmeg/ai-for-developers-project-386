@@ -1,4 +1,5 @@
-import { AppShell, Button, Container, Group, Text, Title } from '@mantine/core';
+import { Suspense } from 'react';
+import { AppShell, Button, Container, Group, Loader, Stack, Text } from '@mantine/core';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { clearAdminToken } from '../lib/adminToken';
 
@@ -15,7 +16,9 @@ export function AdminLayout() {
           <Group h="100%" justify="space-between">
             <Group gap="xl">
               <Link to="/admin/settings" style={{ textDecoration: 'none', color: 'inherit' }}>
-                <Title order={4}>Calendar (admin)</Title>
+                <Text fw={600} size="lg">
+                  Calendar (admin)
+                </Text>
               </Link>
               <Group gap="md">
                 <AdminNavLink to="/admin/settings">Settings</AdminNavLink>
@@ -36,7 +39,15 @@ export function AdminLayout() {
       </AppShell.Header>
       <AppShell.Main>
         <Container size="lg">
-          <Outlet />
+          <Suspense
+            fallback={
+              <Stack align="center" mt="xl">
+                <Loader />
+              </Stack>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </Container>
       </AppShell.Main>
     </AppShell>

@@ -13,8 +13,12 @@ export function CatalogPage() {
   return (
     <Stack gap="md">
       <Stack gap="xs">
-        <Title order={2}>Book a meeting</Title>
-        <Text c="dimmed">Choose an event type to see available time slots in the next 14 days.</Text>
+        <Title order={1} fz="h2">
+          Book a meeting
+        </Title>
+        <Text c="dimmed">
+          Choose an event type to see available time slots in the next 14 days.
+        </Text>
       </Stack>
 
       {isPending && (

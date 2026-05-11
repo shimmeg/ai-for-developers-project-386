@@ -102,7 +102,9 @@ function SettingsForm({ initial }: { initial: OwnerSettings }) {
 
   return (
     <Stack gap="md">
-      <Title order={2}>Settings</Title>
+      <Title order={1} fz="h2">
+        Settings
+      </Title>
       {errorMsg && (
         <Alert color="red" icon={<IconAlertTriangle />} title="Couldn't save settings">
           {errorMsg}
