@@ -159,6 +159,9 @@ describe('BookingsPage', () => {
     });
     renderPage();
     expect(await screen.findByText(/couldn't load bookings/i)).toBeInTheDocument();
+    // The page heading stays visible on the error branch so screen-reader
+    // users still have a "Bookings" landmark while the table is unreachable.
+    expect(screen.getByRole('heading', { level: 2, name: /bookings/i })).toBeInTheDocument();
   });
 
   it('renders an ErrorState when settings load fails (no silent UTC fallback)', async () => {
