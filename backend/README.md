@@ -15,8 +15,12 @@ cd ../contract && npm ci && npm run build && cd -
 make generate
 
 # Run the server. ADMIN_TOKEN is mandatory and must be ≥16 chars.
+# The backend auto-loads backend/.env on startup; real process env vars
+# always win when both are set.
 cp .env.example .env
-ADMIN_TOKEN="$(openssl rand -hex 24)" make run
+# Edit .env and replace the placeholder ADMIN_TOKEN with a real secret,
+# e.g. `ADMIN_TOKEN="$(openssl rand -hex 24)"`, then:
+make run
 # Listens on http://localhost:3000
 ```
 

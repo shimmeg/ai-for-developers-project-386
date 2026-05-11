@@ -31,6 +31,10 @@ func main() {
 }
 
 func run() error {
+	// Best-effort .env load for local dev. Ignored if the file does not exist;
+	// process-level env vars always win when both are set.
+	_ = config.LoadDotEnv(".env")
+
 	cfg, err := config.LoadFromEnv()
 	if err != nil {
 		return err
@@ -64,15 +68,26 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// ListenAndServe runs in a goroutine; bind failures surface on listenErr
+	// so a port collision exits the process non-zero instead of silently
+	// passing through Shutdown of a never-started server.
+	listenErr := make(chan error, 1)
 	go func() {
 		logger.Info("server listening", "port", cfg.Port, "frontendOrigin", cfg.FrontendOrigin)
 		if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("http server crashed", "err", err)
-			stop()
+			listenErr <- err
 		}
+		close(listenErr)
 	}()
 
-	<-ctx.Done()
+	select {
+	case err := <-listenErr:
+		if err != nil {
+			return fmt.Errorf("http server: %w", err)
+		}
+	case <-ctx.Done():
+	}
+
 	logger.Info("shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

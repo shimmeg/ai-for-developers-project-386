@@ -3,25 +3,29 @@ package server
 import (
 	"crypto/subtle"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/shimmeg/ai-for-developers-project-386/backend/internal/api"
 )
 
-// adminAuthCtxKey is the gin.Context key that the generated wrapper sets
-// (via c.Set) on every admin-tagged route. The middleware uses its presence
-// as the signal that a route requires the admin token.
-var adminAuthCtxKey = string(api.ApiKeyAuthScopes)
+// adminPathPrefix gates which incoming requests must carry an admin token.
+// The contract puts every admin operation under /admin/, so a path prefix
+// match is sufficient and lets us install the middleware on the engine root —
+// crucially, before oapi-codegen's generated route wrapper binds path
+// parameters, so a request like DELETE /admin/bookings/not-a-uuid without a
+// token returns 401 (the contract-documented response) instead of the 400
+// the binding layer would otherwise emit.
+const adminPathPrefix = "/admin/"
 
-// RequireAdminToken returns a Gin middleware that rejects requests to
-// admin-tagged routes unless the X-Admin-Token header matches expected.
-// Public routes are left untouched because the generated wrapper only
-// sets ApiKeyAuthScopes on operations with security: ApiKeyAuth.
+// RequireAdminToken returns a Gin middleware that rejects requests under
+// /admin/ unless the X-Admin-Token header matches expected. Public routes
+// pass through untouched.
 func RequireAdminToken(expected string) gin.HandlerFunc {
 	expectedBytes := []byte(expected)
 	return func(c *gin.Context) {
-		if _, isAdmin := c.Get(adminAuthCtxKey); !isAdmin {
+		if !strings.HasPrefix(c.Request.URL.Path, adminPathPrefix) {
 			c.Next()
 			return
 		}
