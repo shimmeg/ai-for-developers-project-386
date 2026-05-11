@@ -125,7 +125,11 @@ describe('EventTypesPage', () => {
     getMock.mockReturnValue(ok(list));
     // Defer the PATCH so we can observe the optimistic flip before the error
     // arrives and the rollback runs.
-    let resolve!: (r: { data?: unknown; error: { code: string; message: string }; response: Response }) => void;
+    let resolve!: (r: {
+      data?: unknown;
+      error: { code: string; message: string };
+      response: Response;
+    }) => void;
     patchMock.mockReturnValueOnce(
       new Promise((r) => {
         resolve = r;

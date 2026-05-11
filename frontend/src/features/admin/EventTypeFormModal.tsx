@@ -1,13 +1,19 @@
-import { Alert, Button, Group, Modal, NumberInput, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Button,
+  Group,
+  Modal,
+  NumberInput,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { notifications } from '@mantine/notifications';
 import { IconAlertTriangle } from '@tabler/icons-react';
-import {
-  EventTypeFormSchema,
-  diffEventType,
-  type EventTypeFormValues,
-} from './event-type-schema';
+import { EventTypeFormSchema, diffEventType, type EventTypeFormValues } from './event-type-schema';
 import {
   useCreateEventType,
   useUpdateEventType,
@@ -108,12 +114,7 @@ export function EventTypeFormModal(props: Props) {
             {...form.getInputProps('slug')}
             error={form.errors.slug ?? slugConflict}
           />
-          <TextInput
-            label="Name"
-            required
-            key={form.key('name')}
-            {...form.getInputProps('name')}
-          />
+          <TextInput label="Name" required key={form.key('name')} {...form.getInputProps('name')} />
           <Textarea
             label="Description"
             required

@@ -22,10 +22,7 @@ import {
 } from '../../api/queries/eventTypesAdmin';
 import { EventTypeFormModal } from './EventTypeFormModal';
 
-type ModalState =
-  | { kind: 'closed' }
-  | { kind: 'create' }
-  | { kind: 'edit'; eventType: EventType };
+type ModalState = { kind: 'closed' } | { kind: 'create' } | { kind: 'edit'; eventType: EventType };
 
 export function EventTypesPage() {
   const listQ = useAdminEventTypes();
@@ -36,7 +33,9 @@ export function EventTypesPage() {
     return (
       <Stack gap="md">
         <Group justify="space-between">
-          <Title order={2}>Event types</Title>
+          <Title order={1} fz="h2">
+            Event types
+          </Title>
         </Group>
         {Array.from({ length: 3 }).map((_, i) => (
           <Skeleton key={i} h={48} />
@@ -86,9 +85,12 @@ export function EventTypesPage() {
     <Stack gap="md">
       <Group justify="space-between" align="flex-start">
         <Stack gap={4}>
-          <Title order={2}>Event types</Title>
+          <Title order={1} fz="h2">
+            Event types
+          </Title>
           <Text c="dimmed" size="sm">
-            All event types — active and inactive. Toggle a row to publish or hide it from the public catalog.
+            All event types — active and inactive. Toggle a row to publish or hide it from the
+            public catalog.
           </Text>
         </Stack>
         <Button leftSection={<IconPlus size={16} />} onClick={() => setModal({ kind: 'create' })}>

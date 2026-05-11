@@ -33,7 +33,11 @@ type ConfirmState = { kind: 'closed' } | { kind: 'open'; booking: Booking };
 // branches — screen-reader users keep the "Bookings" landmark regardless of
 // query state.
 function PageHeader() {
-  return <Title order={2}>Bookings</Title>;
+  return (
+    <Title order={1} fz="h2">
+      Bookings
+    </Title>
+  );
 }
 
 export function BookingsPage() {

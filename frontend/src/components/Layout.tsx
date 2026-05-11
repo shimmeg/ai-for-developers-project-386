@@ -1,4 +1,4 @@
-import { AppShell, Container, Group, Text, Title } from '@mantine/core';
+import { AppShell, Container, Group, Text } from '@mantine/core';
 import { Link, Outlet } from 'react-router';
 
 export function Layout() {
@@ -8,7 +8,9 @@ export function Layout() {
         <Container size="lg" h="100%">
           <Group h="100%" justify="space-between">
             <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <Title order={4}>Calendar</Title>
+              <Text fw={600} size="lg">
+                Calendar
+              </Text>
             </Link>
             <Text size="sm" c="dimmed">
               Guest booking

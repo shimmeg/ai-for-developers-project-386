@@ -4,7 +4,9 @@ import { Link } from 'react-router';
 export function NotFoundPage() {
   return (
     <Stack gap="sm" align="center" py="xl">
-      <Title order={2}>404 — Not found</Title>
+      <Title order={1} fz="h2">
+        404 — Not found
+      </Title>
       <Text c="dimmed">The page you're looking for doesn't exist.</Text>
       <Anchor component={Link} to="/">
         Back to catalog

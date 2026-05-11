@@ -13,13 +13,7 @@ export function ErrorState({
   onRetry,
 }: Props) {
   return (
-    <Alert
-      variant="light"
-      color="red"
-      icon={<IconAlertTriangle />}
-      title={title}
-      role="alert"
-    >
+    <Alert variant="light" color="red" icon={<IconAlertTriangle />} title={title} role="alert">
       <Stack gap="sm">
         <Text size="sm">{message}</Text>
         {onRetry && (

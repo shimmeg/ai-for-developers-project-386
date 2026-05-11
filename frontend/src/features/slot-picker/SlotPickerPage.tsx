@@ -1,5 +1,15 @@
 import { useEffect, useMemo } from 'react';
-import { Anchor, Button, Group, Loader, ScrollArea, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import {
+  Anchor,
+  Button,
+  Group,
+  Loader,
+  ScrollArea,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { IconArrowLeft, IconClock } from '@tabler/icons-react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useEventType } from '../../api/queries/eventTypes';
@@ -102,7 +112,9 @@ function SlotPickerView({ slug }: { slug: string }) {
       {eventTypeQ.data && (
         <Stack gap="md">
           <Stack gap="xs">
-            <Title order={2}>{eventTypeQ.data.name}</Title>
+            <Title order={1} fz="h2">
+              {eventTypeQ.data.name}
+            </Title>
             <Group gap="xs" c="dimmed">
               <IconClock size={16} aria-hidden />
               <Text size="sm">{eventTypeQ.data.durationMinutes} min</Text>
