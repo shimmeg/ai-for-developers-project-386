@@ -13,9 +13,10 @@ Phase 5 in [`frontend/ROADMAP.md`](../../../frontend/ROADMAP.md) names both item
 
 ## Goals
 
-- The Vite build emits multiple JS chunks; the initial chunk loaded on `/` no longer triggers the 500 KB warning.
-- Admin page chunks load on-demand when the user first navigates under `/admin/*`, with a centered `<Loader />` Suspense fallback inside the existing admin chrome (header stays visible).
-- A render error in any guest route shows a friendly [`ErrorState`](../../../frontend/src/components/ErrorState.tsx) with a "Reload" button instead of a blank screen; the admin shell stays unaffected (and vice versa).
+- **Hard requirement:** The Vite build emits a separate JS chunk for each of the three admin pages; the initial chunk loaded on `/` no longer contains those pages' code. Verify by inspecting `dist/assets/`.
+- **Soft target:** the "chunks larger than 500 KB" Vite warning disappears. If shared deps (Mantine, Tabler) keep the main chunk above the threshold even after admin splitting, that's expected and is the input to the separate "bundle analyzer + icon trim" Phase 5 task — record the new main chunk size in the PR description so that follow-up has a baseline.
+- Admin page chunks load on-demand when the user first navigates under `/admin/*`, with a centered `<Loader />` Suspense fallback inside the existing admin chrome (`<AdminLayout>` header stays visible).
+- A render error in any guest route shows a friendly [`ErrorState`](../../../frontend/src/components/ErrorState.tsx) with a Retry button (action: full page reload) instead of a blank screen — and the surrounding layout chrome (`<Layout>` for guest, `<AdminGate>` + `<AdminLayout>` for admin) stays mounted so the user keeps the header/nav. A render error in one branch must not tear down the other branch's shell.
 - Existing 89 frontend tests pass unchanged. One new test covers `<RouteErrorElement>` rendering.
 
 ## Non-goals
@@ -31,10 +32,10 @@ Phase 5 in [`frontend/ROADMAP.md`](../../../frontend/ROADMAP.md) names both item
 | Question | Choice | Reason |
 |---|---|---|
 | Lazy scope | **Admin pages only** | Matches the ROADMAP's literal ask; biggest perf win per LOC; guest hot path stays sync. |
-| Error-boundary scope | **Per-branch** (one `errorElement` on guest, one on admin) | A render error in one branch shouldn't tear down the other shell; isolation costs ~2 lines. |
+| Error-boundary scope | **Per-branch**, attached to an intermediate pass-through route (an `element: <Outlet />` route) *inside* each branch's layout, not on the layout route itself | When a child route throws, react-router replaces the *errored route's element* with the `errorElement`. If `errorElement` is on `<Layout>` or `<AdminLayout>`, that layout's element gets swapped out and the chrome is lost. Putting it on a pass-through route inside the layout means the pass-through's `<Outlet />` is swapped out — layout chrome stays mounted, error renders in the slot where the leaf page would have. |
 | Lazy syntax | **`React.lazy` + `Suspense`** via a small `lazyNamed` helper | Page files use named exports; a 3-line helper avoids three repetitions of `.then((m) => ({ default: m.X }))`. |
-| Suspense placement | **Inside [`<AdminLayout>`](../../../frontend/src/components/AdminLayout.tsx)** around `<Outlet />` | Keeps the admin header visible while the page chunk loads; better UX than wrapping the whole branch. |
-| Error UI | **Reuse `<ErrorState>` with `onRetry={() => window.location.reload()}`** | Already-shipped component, already a11y-correct (`role="alert"`); no new visual primitives. |
+| Suspense placement | **Inside [`<AdminLayout>`](../../../frontend/src/components/AdminLayout.tsx)** around its `<Outlet />` (which now nests the pass-through, which nests the lazy leaf) | Suspense bubbles through nested Outlets, so a single Suspense at the AdminLayout level catches lazy children regardless of the pass-through. Keeps the admin header visible while the page chunk loads. |
+| Error UI | **Reuse `<ErrorState>` as-is** with `onRetry={() => window.location.reload()}`. Button text stays the component's default `"Retry"` — semantically correct and avoids a one-off API change just to relabel | Already-shipped component, already a11y-correct (`role="alert"`); no new visual primitives. The action is a reload; the label is "Retry"; users understand both readings. |
 | Error message in prod | **`error instanceof Error ? error.message : 'Unexpected error'`**, with `console.error(rawError)` in dev only | Don't leak stack traces or internal types to the UI; keep debug visibility in dev. |
 
 ## Architecture
@@ -43,6 +44,9 @@ Phase 5 in [`frontend/ROADMAP.md`](../../../frontend/ROADMAP.md) names both item
 
 ```tsx
 // frontend/src/routes.tsx
+import { createBrowserRouter, Navigate, Outlet } from 'react-router';
+// ... existing imports
+
 const lazyNamed = <K extends string>(
   loader: () => Promise<Record<K, ComponentType>>,
   name: K,
@@ -55,21 +59,38 @@ const BookingsPage   = lazyNamed(() => import('./features/admin/BookingsPage'), 
 export const router = createBrowserRouter([
   {
     element: <Layout />,
-    errorElement: <RouteErrorElement />,
-    children: [ /* eager guest pages, unchanged */ ],
+    children: [
+      {
+        // Pass-through route — hosts errorElement so guest layout chrome survives child render errors.
+        element: <Outlet />,
+        errorElement: <RouteErrorElement />,
+        children: [
+          { path: '/', element: <CatalogPage /> },
+          { path: '/events/:slug', element: <SlotPickerPage /> },
+          { path: '/events/:slug/confirm', element: <ConfirmPage /> },
+          { path: '/events/:slug/booked/:id', element: <SuccessPage /> },
+        ],
+      },
+    ],
   },
   {
     path: '/admin',
     element: <AdminGate />,
-    errorElement: <RouteErrorElement />,
     children: [
       {
         element: <AdminLayout />,
         children: [
-          { index: true, element: <Navigate to="settings" replace /> },
-          { path: 'settings',    element: <SettingsPage />   },
-          { path: 'event-types', element: <EventTypesPage /> },
-          { path: 'bookings',    element: <BookingsPage />   },
+          {
+            // Pass-through route — hosts errorElement so admin layout chrome survives child render errors.
+            element: <Outlet />,
+            errorElement: <RouteErrorElement />,
+            children: [
+              { index: true, element: <Navigate to="settings" replace /> },
+              { path: 'settings',    element: <SettingsPage />   },
+              { path: 'event-types', element: <EventTypesPage /> },
+              { path: 'bookings',    element: <BookingsPage />   },
+            ],
+          },
         ],
       },
     ],
@@ -77,6 +98,8 @@ export const router = createBrowserRouter([
   { path: '*', element: <NotFoundPage /> },
 ]);
 ```
+
+**Why the pass-through layer:** when a leaf route throws, react-router walks up to the nearest `errorElement` and renders it *in place of that route's element*. If `errorElement` lived on the `<Layout>` / `<AdminGate>` route, those layouts would be unmounted and replaced by the bare `<ErrorState>` alert — chrome gone. Putting it one level below, on a route whose only job is to render `<Outlet />`, means the pass-through's element (an `Outlet`) is the thing that gets swapped to the error UI — and the parent layout, sitting one level above, keeps rendering normally.
 
 ### `<AdminLayout>` Suspense wrapping
 
@@ -118,7 +141,7 @@ export function RouteErrorElement() {
 
 | File | Change |
 |---|---|
-| [`frontend/src/routes.tsx`](../../../frontend/src/routes.tsx) | Replace 3 eager admin imports with `lazyNamed`; add `errorElement` to both top-level routes. |
+| [`frontend/src/routes.tsx`](../../../frontend/src/routes.tsx) | Replace 3 eager admin imports with `lazyNamed`; import `Outlet`; insert one pass-through route inside each branch (guest and admin) whose `errorElement` is `<RouteErrorElement />`. |
 | [`frontend/src/components/AdminLayout.tsx`](../../../frontend/src/components/AdminLayout.tsx) | Wrap `<Outlet />` in `<Suspense fallback={…}>`. |
 | [`frontend/src/components/RouteErrorElement.tsx`](../../../frontend/src/components/RouteErrorElement.tsx) | New, ~20 lines. |
 | [`frontend/src/test/RouteErrorElement.test.tsx`](../../../frontend/src/test/RouteErrorElement.test.tsx) | New, ~30 lines. |
@@ -131,10 +154,27 @@ No `package.json` changes — `react-router`, `@mantine/core`, `@tabler/icons-re
 **Existing tests (89 across 19 files):** must pass unchanged. Page-level test files render components directly inside `MantineProvider` + `QueryClientProvider` and do not import `routes.tsx`, so the lazy wrapping is invisible to them. Confirmed before implementation by `grep -rn "from .*routes" frontend/src/test`.
 
 **New test — `RouteErrorElement.test.tsx`:**
-- Build a minimal `<MemoryRouter>` route config where the element throws a known `Error`.
-- Mount with `RouterProvider`.
-- Assert: `ErrorState` title `"Something went wrong"` is in the DOM, the error message is rendered, the Reload button is present and clickable.
-- Optional second case: error is a non-`Error` value (e.g. `throw 'boom'`) → assert fallback message `"Unexpected error"`.
+- Use `createMemoryRouter` (the data-router factory) **not** `<MemoryRouter>` — the component form does not honor route-object `errorElement`. Sketch:
+
+  ```tsx
+  import { createMemoryRouter, RouterProvider } from 'react-router';
+  import { MantineProvider } from '@mantine/core';
+  import { render, screen } from '@testing-library/react';
+  import { RouteErrorElement } from '../components/RouteErrorElement';
+
+  function Boom(): never { throw new Error('boom'); }
+
+  function renderRoute(element: React.ReactNode) {
+    const router = createMemoryRouter([
+      { path: '/', element, errorElement: <RouteErrorElement /> },
+    ], { initialEntries: ['/'] });
+    return render(<MantineProvider><RouterProvider router={router} /></MantineProvider>);
+  }
+  ```
+
+- Case 1: `renderRoute(<Boom />)` → assert `screen.getByRole('alert')` (the `ErrorState` `Alert`) contains title `"Something went wrong"` and the message `"boom"`, and `screen.getByRole('button', { name: /retry/i })` is present.
+- Case 2: a throwing element whose throw value is a non-`Error` (`function ThrowString(): never { throw 'oops' as unknown as Error }`) → assert the fallback message `"Unexpected error"` renders.
+- (The button label is `Retry` — `ErrorState`'s hard-coded text. The fact that `onRetry` is a `window.location.reload()` is a separate concern from the label.)
 
 **Skipped (intentionally):** an integration test that exercises real `React.lazy` chunk loading. vitest + Vite dynamic imports can be made to work but the test is fragile and the browser verification below is both faster and more meaningful.
 
@@ -151,16 +191,17 @@ cd ../contract && npm test
 
 All must be green. Then:
 
-1. **Inspect `frontend/dist/assets/`** — expect at least three JS files (main + per-admin-page chunks). The Vite "chunks larger than 500 kB" warning should be gone, or the main chunk should drop substantially below 724 KB.
-2. **Browser preview (`/` guest entry):** Network panel shows only the main JS chunk + CSS + Mantine/icons. No admin chunk on initial load.
-3. **Browser preview (navigate to `/admin/settings`):** a new chunk fetch appears in Network; the admin header renders immediately, and the centered `<Loader />` flashes briefly before the page content paints.
-4. **Per-branch error isolation (dev-only spot check, reverted before commit):** temporarily add `throw new Error('test')` inside `<CatalogPage>` render → `/` shows `<ErrorState>` while `/admin/settings` still renders normally. Revert.
+1. **Inspect `frontend/dist/assets/` — HARD PASS:** the directory contains at least 4 JS files (the main bundle plus one per admin page). If admin page modules are not in separate files, the code-split half of the task is not complete.
+2. **Bundle-warning check — SOFT TARGET:** the Vite "chunks larger than 500 kB" warning is ideally gone. If it persists (shared Mantine + Tabler code still pushes the main chunk over the threshold), note the new main chunk size in the PR description. This is expected and is the input to the separate Phase 5 task that adds `rollup-plugin-visualizer` and trims the Tabler icons import — do not block this PR on it.
+3. **Browser preview (`/` guest entry):** Network panel shows only the main JS chunk + CSS + Mantine/icons. No admin chunk on initial load.
+4. **Browser preview (navigate to `/admin/settings`):** a new chunk fetch appears in Network; the admin header renders immediately, and the centered `<Loader />` flashes briefly before the page content paints. Repeat for `event-types` and `bookings` — each first visit pulls a new chunk; second visit is cached.
+5. **Per-branch error isolation (dev-only spot check, reverted before commit):** temporarily add `throw new Error('test')` inside `<CatalogPage>` render → `/` shows `<ErrorState>` *inside* the guest `<Layout>` shell (header still visible), and `/admin/settings` still renders normally. Repeat with the throw inside `<SettingsPage>` → `/admin/settings` shows `<ErrorState>` *inside* the `<AdminLayout>` chrome (admin header + nav still visible). Revert both throws.
 
 ## Risk register
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Lazy chunk 404 mid-session after a deploy | low (no production deploys yet; concern is theoretical) | `errorElement` catches the failed-import error and surfaces `<ErrorState>` with Reload; reload pulls the fresh bundle. |
+| Lazy chunk 404 mid-session after a deploy | low (no production deploys yet; concern is theoretical) | `errorElement` catches the failed-import error and surfaces `<ErrorState>`; clicking the Retry button calls `window.location.reload()` and pulls the fresh bundle. |
 | Suspense fallback flashes annoyingly on fast admin navigation | low (chunks cache after first load) | Skeletons (separate Phase 5 task) will improve this; for now, accept the brief Loader. |
 | Existing tests start importing `routes.tsx` later and break | low | The grep above is documented in the testing section; if a future test does need `routes.tsx`, `waitFor` + `findBy` is the standard fix. |
 | `useRouteError()` returns something neither `Error` nor primitive | very low (only triggers if a router-thrown `Response` reaches us, and we don't use loaders) | Fallback `'Unexpected error'` message; `console.error` in dev surfaces the raw shape. |
