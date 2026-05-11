@@ -29,14 +29,14 @@ Phase 5 in [`frontend/ROADMAP.md`](../../../frontend/ROADMAP.md) names both item
 
 ## Decisions (settled in brainstorming)
 
-| Question | Choice | Reason |
-|---|---|---|
-| Lazy scope | **Admin pages only** | Matches the ROADMAP's literal ask; biggest perf win per LOC; guest hot path stays sync. |
-| Error-boundary scope | **Per-branch**, attached to an intermediate pass-through route (an `element: <Outlet />` route) *inside* each branch's layout, not on the layout route itself | When a child route throws, react-router replaces the *errored route's element* with the `errorElement`. If `errorElement` is on `<Layout>` or `<AdminLayout>`, that layout's element gets swapped out and the chrome is lost. Putting it on a pass-through route inside the layout means the pass-through's `<Outlet />` is swapped out — layout chrome stays mounted, error renders in the slot where the leaf page would have. |
-| Lazy syntax | **`React.lazy` + `Suspense`** via a small `lazyNamed` helper | Page files use named exports; a 3-line helper avoids three repetitions of `.then((m) => ({ default: m.X }))`. |
-| Suspense placement | **Inside [`<AdminLayout>`](../../../frontend/src/components/AdminLayout.tsx)** around its `<Outlet />` (which now nests the pass-through, which nests the lazy leaf) | Suspense bubbles through nested Outlets, so a single Suspense at the AdminLayout level catches lazy children regardless of the pass-through. Keeps the admin header visible while the page chunk loads. |
-| Error UI | **Reuse `<ErrorState>` as-is** with `onRetry={() => window.location.reload()}`. Button text stays the component's default `"Retry"` — semantically correct and avoids a one-off API change just to relabel | Already-shipped component, already a11y-correct (`role="alert"`); no new visual primitives. The action is a reload; the label is "Retry"; users understand both readings. |
-| Error message in prod | **`error instanceof Error ? error.message : 'Unexpected error'`**, with `console.error(rawError)` in dev only | Don't leak stack traces or internal types to the UI; keep debug visibility in dev. |
+| Question              | Choice                                                                                                                                                                                                     | Reason                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lazy scope            | **Admin pages only**                                                                                                                                                                                       | Matches the ROADMAP's literal ask; biggest perf win per LOC; guest hot path stays sync.                                                                                                                                                                                                                                                                                                                                          |
+| Error-boundary scope  | **Per-branch**, attached to an intermediate pass-through route (an `element: <Outlet />` route) _inside_ each branch's layout, not on the layout route itself                                              | When a child route throws, react-router replaces the _errored route's element_ with the `errorElement`. If `errorElement` is on `<Layout>` or `<AdminLayout>`, that layout's element gets swapped out and the chrome is lost. Putting it on a pass-through route inside the layout means the pass-through's `<Outlet />` is swapped out — layout chrome stays mounted, error renders in the slot where the leaf page would have. |
+| Lazy syntax           | **`React.lazy` + `Suspense`** via a small `lazyNamed` helper                                                                                                                                               | Page files use named exports; a 3-line helper avoids three repetitions of `.then((m) => ({ default: m.X }))`.                                                                                                                                                                                                                                                                                                                    |
+| Suspense placement    | **Inside [`<AdminLayout>`](../../../frontend/src/components/AdminLayout.tsx)** around its `<Outlet />` (which now nests the pass-through, which nests the lazy leaf)                                       | Suspense bubbles through nested Outlets, so a single Suspense at the AdminLayout level catches lazy children regardless of the pass-through. Keeps the admin header visible while the page chunk loads.                                                                                                                                                                                                                          |
+| Error UI              | **Reuse `<ErrorState>` as-is** with `onRetry={() => window.location.reload()}`. Button text stays the component's default `"Retry"` — semantically correct and avoids a one-off API change just to relabel | Already-shipped component, already a11y-correct (`role="alert"`); no new visual primitives. The action is a reload; the label is "Retry"; users understand both readings.                                                                                                                                                                                                                                                        |
+| Error message in prod | **`error instanceof Error ? error.message : 'Unexpected error'`**, with `console.error(rawError)` in dev only                                                                                              | Don't leak stack traces or internal types to the UI; keep debug visibility in dev.                                                                                                                                                                                                                                                                                                                                               |
 
 ## Architecture
 
@@ -44,7 +44,7 @@ Phase 5 in [`frontend/ROADMAP.md`](../../../frontend/ROADMAP.md) names both item
 
 ```tsx
 // frontend/src/routes.tsx
-import { createBrowserRouter, Navigate, Outlet } from 'react-router';
+import { createBrowserRouter, Navigate, Outlet } from "react-router";
 // ... existing imports
 
 const lazyNamed = <K extends string>(
@@ -52,9 +52,18 @@ const lazyNamed = <K extends string>(
   name: K,
 ) => lazy(() => loader().then((m) => ({ default: m[name] })));
 
-const SettingsPage   = lazyNamed(() => import('./features/admin/SettingsPage'),   'SettingsPage');
-const EventTypesPage = lazyNamed(() => import('./features/admin/EventTypesPage'), 'EventTypesPage');
-const BookingsPage   = lazyNamed(() => import('./features/admin/BookingsPage'),   'BookingsPage');
+const SettingsPage = lazyNamed(
+  () => import("./features/admin/SettingsPage"),
+  "SettingsPage",
+);
+const EventTypesPage = lazyNamed(
+  () => import("./features/admin/EventTypesPage"),
+  "EventTypesPage",
+);
+const BookingsPage = lazyNamed(
+  () => import("./features/admin/BookingsPage"),
+  "BookingsPage",
+);
 
 export const router = createBrowserRouter([
   {
@@ -65,16 +74,16 @@ export const router = createBrowserRouter([
         element: <Outlet />,
         errorElement: <RouteErrorElement />,
         children: [
-          { path: '/', element: <CatalogPage /> },
-          { path: '/events/:slug', element: <SlotPickerPage /> },
-          { path: '/events/:slug/confirm', element: <ConfirmPage /> },
-          { path: '/events/:slug/booked/:id', element: <SuccessPage /> },
+          { path: "/", element: <CatalogPage /> },
+          { path: "/events/:slug", element: <SlotPickerPage /> },
+          { path: "/events/:slug/confirm", element: <ConfirmPage /> },
+          { path: "/events/:slug/booked/:id", element: <SuccessPage /> },
         ],
       },
     ],
   },
   {
-    path: '/admin',
+    path: "/admin",
     element: <AdminGate />,
     children: [
       {
@@ -86,20 +95,20 @@ export const router = createBrowserRouter([
             errorElement: <RouteErrorElement />,
             children: [
               { index: true, element: <Navigate to="settings" replace /> },
-              { path: 'settings',    element: <SettingsPage />   },
-              { path: 'event-types', element: <EventTypesPage /> },
-              { path: 'bookings',    element: <BookingsPage />   },
+              { path: "settings", element: <SettingsPage /> },
+              { path: "event-types", element: <EventTypesPage /> },
+              { path: "bookings", element: <BookingsPage /> },
             ],
           },
         ],
       },
     ],
   },
-  { path: '*', element: <NotFoundPage /> },
+  { path: "*", element: <NotFoundPage /> },
 ]);
 ```
 
-**Why the pass-through layer:** when a leaf route throws, react-router walks up to the nearest `errorElement` and renders it *in place of that route's element*. If `errorElement` lived on the `<Layout>` / `<AdminGate>` route, those layouts would be unmounted and replaced by the bare `<ErrorState>` alert — chrome gone. Putting it one level below, on a route whose only job is to render `<Outlet />`, means the pass-through's element (an `Outlet`) is the thing that gets swapped to the error UI — and the parent layout, sitting one level above, keeps rendering normally.
+**Why the pass-through layer:** when a leaf route throws, react-router walks up to the nearest `errorElement` and renders it _in place of that route's element_. If `errorElement` lived on the `<Layout>` / `<AdminGate>` route, those layouts would be unmounted and replaced by the bare `<ErrorState>` alert — chrome gone. Putting it one level below, on a route whose only job is to render `<Outlet />`, means the pass-through's element (an `Outlet`) is the thing that gets swapped to the error UI — and the parent layout, sitting one level above, keeps rendering normally.
 
 ### `<AdminLayout>` Suspense wrapping
 
@@ -107,7 +116,13 @@ The current shell renders `<Outlet />` directly inside the admin chrome. Wrap it
 
 ```tsx
 // frontend/src/components/AdminLayout.tsx — relevant fragment
-<Suspense fallback={<Stack align="center" mt="xl"><Loader /></Stack>}>
+<Suspense
+  fallback={
+    <Stack align="center" mt="xl">
+      <Loader />
+    </Stack>
+  }
+>
   <Outlet />
 </Suspense>
 ```
@@ -118,13 +133,13 @@ This keeps the header + nav visible while the admin page chunk loads. Guest [`<L
 
 ```tsx
 // frontend/src/components/RouteErrorElement.tsx
-import { useRouteError } from 'react-router';
-import { ErrorState } from './ErrorState';
+import { useRouteError } from "react-router";
+import { ErrorState } from "./ErrorState";
 
 export function RouteErrorElement() {
   const error = useRouteError();
-  if (import.meta.env.DEV) console.error('Route error:', error);
-  const message = error instanceof Error ? error.message : 'Unexpected error';
+  if (import.meta.env.DEV) console.error("Route error:", error);
+  const message = error instanceof Error ? error.message : "Unexpected error";
   return (
     <ErrorState
       title="Something went wrong"
@@ -139,13 +154,13 @@ export function RouteErrorElement() {
 
 ### File changes summary
 
-| File | Change |
-|---|---|
-| [`frontend/src/routes.tsx`](../../../frontend/src/routes.tsx) | Replace 3 eager admin imports with `lazyNamed`; import `Outlet`; insert one pass-through route inside each branch (guest and admin) whose `errorElement` is `<RouteErrorElement />`. |
-| [`frontend/src/components/AdminLayout.tsx`](../../../frontend/src/components/AdminLayout.tsx) | Wrap `<Outlet />` in `<Suspense fallback={…}>`. |
-| [`frontend/src/components/RouteErrorElement.tsx`](../../../frontend/src/components/RouteErrorElement.tsx) | New, ~20 lines. |
-| [`frontend/src/test/RouteErrorElement.test.tsx`](../../../frontend/src/test/RouteErrorElement.test.tsx) | New, ~30 lines. |
-| [`frontend/ROADMAP.md`](../../../frontend/ROADMAP.md) | Tick the **Code-split admin routes** and **Route-level error boundary** boxes; cross-reference this spec. |
+| File                                                                                                      | Change                                                                                                                                                                               |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`frontend/src/routes.tsx`](../../../frontend/src/routes.tsx)                                             | Replace 3 eager admin imports with `lazyNamed`; import `Outlet`; insert one pass-through route inside each branch (guest and admin) whose `errorElement` is `<RouteErrorElement />`. |
+| [`frontend/src/components/AdminLayout.tsx`](../../../frontend/src/components/AdminLayout.tsx)             | Wrap `<Outlet />` in `<Suspense fallback={…}>`.                                                                                                                                      |
+| [`frontend/src/components/RouteErrorElement.tsx`](../../../frontend/src/components/RouteErrorElement.tsx) | New, ~20 lines.                                                                                                                                                                      |
+| [`frontend/src/test/RouteErrorElement.test.tsx`](../../../frontend/src/test/RouteErrorElement.test.tsx)   | New, ~30 lines.                                                                                                                                                                      |
+| [`frontend/ROADMAP.md`](../../../frontend/ROADMAP.md)                                                     | Tick the **Code-split admin routes** and **Route-level error boundary** boxes; cross-reference this spec.                                                                            |
 
 No `package.json` changes — `react-router`, `@mantine/core`, `@tabler/icons-react` already provide everything needed.
 
@@ -154,21 +169,29 @@ No `package.json` changes — `react-router`, `@mantine/core`, `@tabler/icons-re
 **Existing tests (89 across 19 files):** must pass unchanged. Page-level test files render components directly inside `MantineProvider` + `QueryClientProvider` and do not import `routes.tsx`, so the lazy wrapping is invisible to them. Confirmed before implementation by `grep -rn "from .*routes" frontend/src/test`.
 
 **New test — `RouteErrorElement.test.tsx`:**
+
 - Use `createMemoryRouter` (the data-router factory) **not** `<MemoryRouter>` — the component form does not honor route-object `errorElement`. Sketch:
 
   ```tsx
-  import { createMemoryRouter, RouterProvider } from 'react-router';
-  import { MantineProvider } from '@mantine/core';
-  import { render, screen } from '@testing-library/react';
-  import { RouteErrorElement } from '../components/RouteErrorElement';
+  import { createMemoryRouter, RouterProvider } from "react-router";
+  import { MantineProvider } from "@mantine/core";
+  import { render, screen } from "@testing-library/react";
+  import { RouteErrorElement } from "../components/RouteErrorElement";
 
-  function Boom(): never { throw new Error('boom'); }
+  function Boom(): never {
+    throw new Error("boom");
+  }
 
   function renderRoute(element: React.ReactNode) {
-    const router = createMemoryRouter([
-      { path: '/', element, errorElement: <RouteErrorElement /> },
-    ], { initialEntries: ['/'] });
-    return render(<MantineProvider><RouterProvider router={router} /></MantineProvider>);
+    const router = createMemoryRouter(
+      [{ path: "/", element, errorElement: <RouteErrorElement /> }],
+      { initialEntries: ["/"] },
+    );
+    return render(
+      <MantineProvider>
+        <RouterProvider router={router} />
+      </MantineProvider>,
+    );
   }
   ```
 
@@ -195,17 +218,17 @@ All must be green. Then:
 2. **Bundle-warning check — SOFT TARGET:** the Vite "chunks larger than 500 kB" warning is ideally gone. If it persists (shared Mantine + Tabler code still pushes the main chunk over the threshold), note the new main chunk size in the PR description. This is expected and is the input to the separate Phase 5 task that adds `rollup-plugin-visualizer` and trims the Tabler icons import — do not block this PR on it.
 3. **Browser preview (`/` guest entry):** Network panel shows only the main JS chunk + CSS + Mantine/icons. No admin chunk on initial load.
 4. **Browser preview (navigate to `/admin/settings`):** a new chunk fetch appears in Network; the admin header renders immediately, and the centered `<Loader />` flashes briefly before the page content paints. Repeat for `event-types` and `bookings` — each first visit pulls a new chunk; second visit is cached.
-5. **Per-branch error isolation (dev-only spot check, reverted before commit):** temporarily add `throw new Error('test')` inside `<CatalogPage>` render → `/` shows `<ErrorState>` *inside* the guest `<Layout>` shell (header still visible), and `/admin/settings` still renders normally. Repeat with the throw inside `<SettingsPage>` → `/admin/settings` shows `<ErrorState>` *inside* the `<AdminLayout>` chrome (admin header + nav still visible). Revert both throws.
+5. **Per-branch error isolation (dev-only spot check, reverted before commit):** temporarily add `throw new Error('test')` inside `<CatalogPage>` render → `/` shows `<ErrorState>` _inside_ the guest `<Layout>` shell (header still visible), and `/admin/settings` still renders normally. Repeat with the throw inside `<SettingsPage>` → `/admin/settings` shows `<ErrorState>` _inside_ the `<AdminLayout>` chrome (admin header + nav still visible). Revert both throws.
 
 ## Risk register
 
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| Lazy chunk 404 mid-session after a deploy | low (no production deploys yet; concern is theoretical) | `errorElement` catches the failed-import error and surfaces `<ErrorState>`; clicking the Retry button calls `window.location.reload()` and pulls the fresh bundle. |
-| Suspense fallback flashes annoyingly on fast admin navigation | low (chunks cache after first load) | Skeletons (separate Phase 5 task) will improve this; for now, accept the brief Loader. |
-| Existing tests start importing `routes.tsx` later and break | low | The grep above is documented in the testing section; if a future test does need `routes.tsx`, `waitFor` + `findBy` is the standard fix. |
-| `useRouteError()` returns something neither `Error` nor primitive | very low (only triggers if a router-thrown `Response` reaches us, and we don't use loaders) | Fallback `'Unexpected error'` message; `console.error` in dev surfaces the raw shape. |
-| `import.meta.env.DEV` not type-narrowed | none | `tsconfig.app.json` has `"types": ["vite/client"]`, which ships the `ImportMetaEnv` augmentation. |
+| Risk                                                              | Likelihood                                                                                  | Mitigation                                                                                                                                                         |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Lazy chunk 404 mid-session after a deploy                         | low (no production deploys yet; concern is theoretical)                                     | `errorElement` catches the failed-import error and surfaces `<ErrorState>`; clicking the Retry button calls `window.location.reload()` and pulls the fresh bundle. |
+| Suspense fallback flashes annoyingly on fast admin navigation     | low (chunks cache after first load)                                                         | Skeletons (separate Phase 5 task) will improve this; for now, accept the brief Loader.                                                                             |
+| Existing tests start importing `routes.tsx` later and break       | low                                                                                         | The grep above is documented in the testing section; if a future test does need `routes.tsx`, `waitFor` + `findBy` is the standard fix.                            |
+| `useRouteError()` returns something neither `Error` nor primitive | very low (only triggers if a router-thrown `Response` reaches us, and we don't use loaders) | Fallback `'Unexpected error'` message; `console.error` in dev surfaces the raw shape.                                                                              |
+| `import.meta.env.DEV` not type-narrowed                           | none                                                                                        | `tsconfig.app.json` has `"types": ["vite/client"]`, which ships the `ImportMetaEnv` augmentation.                                                                  |
 
 ## Cross-references
 

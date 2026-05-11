@@ -19,11 +19,11 @@ This document is the **business description** — the agreed-upon behaviour, ent
 
 ### 1.2 Core entities (business-level)
 
-| Entity | Key attributes |
-|---|---|
-| **Owner settings** | timezone (IANA string, e.g. `Europe/Moscow`); working hours per day-of-week (start, end, or "closed") |
-| **Event type** | `slug` (owner-chosen, unique, URL-friendly), `name`, `description`, `duration_minutes`, `active` flag |
-| **Booking** | reference to event type, `start_time`, `duration_snapshot` (copied from the event type at booking time), `guest_name`, `guest_email`, optional `guest_notes`, `created_at` |
+| Entity             | Key attributes                                                                                                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Owner settings** | timezone (IANA string, e.g. `Europe/Moscow`); working hours per day-of-week (start, end, or "closed")                                                                      |
+| **Event type**     | `slug` (owner-chosen, unique, URL-friendly), `name`, `description`, `duration_minutes`, `active` flag                                                                      |
+| **Booking**        | reference to event type, `start_time`, `duration_snapshot` (copied from the event type at booking time), `guest_name`, `guest_email`, optional `guest_notes`, `created_at` |
 
 The duration snapshot is required so future edits to an event type's duration cannot retroactively change history.
 
@@ -70,7 +70,7 @@ Past bookings are not displayed in v1. They remain in the database.
 
 ## 3. Guest flow
 
-Guest pages are public (no token, no login). All times are shown in the owner's configured timezone, with the timezone label displayed on every page that shows times (e.g., *"All times shown in Europe/Moscow"*).
+Guest pages are public (no token, no login). All times are shown in the owner's configured timezone, with the timezone label displayed on every page that shows times (e.g., _"All times shown in Europe/Moscow"_).
 
 ### 3.1 Catalog page (`/`)
 
@@ -94,7 +94,7 @@ Two actions: **Confirm booking** and **Back** (returns to slot picker, no bookin
 
 On submit, the server re-validates that the slot is still available.
 
-- **Success** — booking is created and the guest sees a success page with the booked details and a note: *"Please save these details — there is no email confirmation in this version."*
+- **Success** — booking is created and the guest sees a success page with the booked details and a note: _"Please save these details — there is no email confirmation in this version."_
 - **Slot now taken / now in the past / event type became inactive** — booking is rejected; guest is sent back to the slot picker with an explanatory message; no partial state is written.
 - **Validation error** (missing fields, malformed email) — form is re-shown with the offending field highlighted.
 
@@ -190,33 +190,42 @@ There are no existing functions or utilities in this repo to reuse.
 The implementation is correct when all of the following pass — exercised manually via the UI, or as automated end-to-end tests:
 
 **Setup**
+
 - Configure timezone in settings; configure working hours for each day of the week (some days closed).
 - Create three event types with different durations (e.g., 15, 30, 60 min). Toggle one inactive.
 - Verify the inactive event type is hidden from `/` but still appears on `/<token>/admin/event-types`.
 
 **Slot generation**
+
 - For each active event type, the slot picker for `/events/<slug>` shows slots only within working hours, only in the 14-day window, only for days not marked closed, only for slots that fit inside the day's working window, and never in the past relative to "now."
 
 **Booking happy path**
+
 - Book a slot as a guest. Verify it appears in `/<token>/admin/bookings` with correct fields and that the slot is no longer available in the slot picker for the same event type or any overlapping event type.
 
 **Cross-event-type conflict**
+
 - Book a 60-min slot at 10:00. On a 30-min event type, verify that 10:00 and 10:30 are both unavailable, and that 09:30 (which would end at 10:00, not overlap) is available.
 
 **Cancellation**
+
 - Cancel the booking from `/<token>/admin/bookings`. Verify the slot becomes available again immediately for both the original event type and overlapping ones.
 
 **Concurrency**
+
 - Open two browser windows on the same slot's confirmation page; submit both. Verify exactly one succeeds and the other gets a "slot no longer available" message; verify only one booking exists in the DB.
 
 **Past slots**
+
 - At, say, 11:00, verify slots earlier than 11:00 today are not shown. Verify that yesterday is not in the window.
 
 **Configuration changes preserve bookings**
+
 - With an existing booking at 09:30, change working hours to start at 10:00. Verify the existing booking still appears in `/<token>/admin/bookings`. Verify new slot pickers no longer offer 09:30.
 - Toggle an event type with existing bookings to inactive. Verify the existing bookings still appear. Verify the event type is hidden from `/`.
 
 **Owner-only access**
+
 - Verify admin API calls with the correct `X-Admin-Token` header succeed.
 - Verify admin API calls with a missing or wrong token are rejected with `401 Unauthorized`.
 - Verify the admin web pages prompt for the token when local storage is empty, persist it after entry, and clear it on a `401` response so the prompt re-appears.

@@ -14,10 +14,9 @@ function ThrowString(): never {
 }
 
 function renderRoute(element: ReactNode) {
-  const router = createMemoryRouter(
-    [{ path: '/', element, errorElement: <RouteErrorElement /> }],
-    { initialEntries: ['/'] },
-  );
+  const router = createMemoryRouter([{ path: '/', element, errorElement: <RouteErrorElement /> }], {
+    initialEntries: ['/'],
+  });
   return render(
     <MantineProvider>
       <RouterProvider router={router} />

@@ -70,7 +70,7 @@ Cover all of these. For each dimension, give specific findings tied to file path
 - Conflict-rule UX: after a `409`, the slot picker is **re-fetched** (slots have changed), not just re-shown with stale data.
 - Inactive event types are invisible to guests on `/` and on `/events/{slug}` (404, not a hidden-but-bookable slot picker).
 - Booking success (`/events/{slug}/booked/{id}`): displays event-type name, date and time (with TZ label), duration, the guest's submitted data, and the no-email-receipt notice from spec §3.3 / §3.4; degrades gracefully on direct access without booking data (e.g., refetch booking by id, or render a sensible empty state).
-- v1 non-goals (spec §5) are NOT implemented (see "What is *not* a finding" below).
+- v1 non-goals (spec §5) are NOT implemented (see "What is _not_ a finding" below).
 
 ### 2. React (stack-specific best practices)
 
@@ -157,7 +157,7 @@ Mantine gives much of this for free; flag deviations only.
 
 ### 10. Security and privacy
 
-- **Token storage**: `localStorage` is per spec — note the trade-off (XSS-readable) but do NOT list as a v1 defect (see "What is *not* a finding"). Do flag the absence of a README caveat warning against public deployment.
+- **Token storage**: `localStorage` is per spec — note the trade-off (XSS-readable) but do NOT list as a v1 defect (see "What is _not_ a finding"). Do flag the absence of a README caveat warning against public deployment.
 - **XSS hygiene**: any `dangerouslySetInnerHTML` usage is a finding unless the input is a trusted constant. User-supplied strings (event-type description, guest name/notes) must render as text, not HTML.
 - **CSRF stance**: with no cookie-based auth, CSRF is not a concern; confirm the code reflects this and isn't needlessly setting cookies.
 - **No secrets in client bundle**: nothing private leaks into JS the browser receives. `VITE_*` env vars are public by definition — verify nothing sensitive is named `VITE_*`.
@@ -188,7 +188,7 @@ These are concrete, easy-to-miss bugs you must check explicitly:
 10. **Open-redirect-safe `next` parameter** (or absence). If the token prompt or admin login accepts a `next=` URL to redirect to after token entry, validate it stays inside the app.
 11. **No fetch in `useEffect`.** All server state should go through React Query. A `useEffect`+`fetch` pattern is a finding even if it works.
 
-## What is *not* a finding
+## What is _not_ a finding
 
 Don't flag the following — they are out of scope by design (spec §5):
 

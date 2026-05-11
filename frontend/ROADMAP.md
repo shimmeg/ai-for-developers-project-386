@@ -195,8 +195,8 @@ These are independent tasks; each can be its own small PR.
 
 ### Tasks
 
-- [ ] **Code-split admin routes** — `React.lazy` + `Suspense` so the guest bundle stays small (current single bundle is ~563 KB minified).
-- [ ] **Route-level error boundary** — single `ErrorBoundary` wrapping `<Outlet />` to catch render errors per route.
+- [x] **Code-split admin routes** — `React.lazy` + `Suspense`. Admin pages now ship as separate chunks; guest entry no longer pulls them (main chunk: 353 KB, down from 724 KB). See [Phase 5 design spec](../docs/superpowers/specs/2026-05-11-phase-5-code-split-and-route-error-boundaries-design.md).
+- [x] **Route-level error boundary** — `errorElement` on an intermediate pass-through route inside each branch, so a leaf render error renders `<ErrorState>` inside the surrounding layout chrome rather than blanking the page. See [Phase 5 design spec](../docs/superpowers/specs/2026-05-11-phase-5-code-split-and-route-error-boundaries-design.md).
 - [ ] **Loading skeletons** — replace spinners with Mantine `Skeleton` shapes on catalog/slot-picker for less jumpy loading.
 - [ ] **Mobile responsive pass** — slot picker grid below `sm` breakpoint currently shows 2 columns; verify all admin tables/forms work below 600 px.
 - [ ] **Dark mode toggle** — `useMantineColorScheme` already wired; add a header switch.

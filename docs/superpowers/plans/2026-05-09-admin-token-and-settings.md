@@ -54,6 +54,7 @@ frontend/src/
 Updates the contract so Prism returns realistic `OwnerSettings` examples for `GET` and `PUT /admin/settings`. Without this the form has nothing to populate against the mock.
 
 **Files:**
+
 - Modify: `contract/admin.tsp`
 
 - [ ] **Step 1: Add `@opExample` decorators**
@@ -158,6 +159,7 @@ EOF
 Pure module: getters/setters for the token + the `rejectedAt` flag, with a subscribe API for `useSyncExternalStore` and cross-tab `storage` event handling.
 
 **Files:**
+
 - Create: `frontend/src/lib/adminToken.ts`
 - Test: `frontend/src/test/adminToken.test.ts`
 
@@ -166,76 +168,76 @@ Pure module: getters/setters for the token + the `rejectedAt` flag, with a subsc
 Create `frontend/src/test/adminToken.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearAdminToken,
   getAdminToken,
   getRejectedAt,
   setAdminToken,
   subscribeAdminToken,
-} from '../lib/adminToken';
+} from "../lib/adminToken";
 
 beforeEach(() => {
   localStorage.clear();
 });
 
-describe('adminToken store', () => {
-  it('returns null when nothing is stored', () => {
+describe("adminToken store", () => {
+  it("returns null when nothing is stored", () => {
     expect(getAdminToken()).toBeNull();
     expect(getRejectedAt()).toBeNull();
   });
 
-  it('persists set/clear to localStorage', () => {
-    setAdminToken('abc');
-    expect(getAdminToken()).toBe('abc');
-    expect(localStorage.getItem('calendar.adminToken')).toBe('abc');
+  it("persists set/clear to localStorage", () => {
+    setAdminToken("abc");
+    expect(getAdminToken()).toBe("abc");
+    expect(localStorage.getItem("calendar.adminToken")).toBe("abc");
 
-    clearAdminToken({ reason: 'signed-out' });
+    clearAdminToken({ reason: "signed-out" });
     expect(getAdminToken()).toBeNull();
-    expect(localStorage.getItem('calendar.adminToken')).toBeNull();
+    expect(localStorage.getItem("calendar.adminToken")).toBeNull();
     expect(getRejectedAt()).toBeNull();
   });
 
   it('records rejectedAt only when reason is "rejected"', () => {
-    setAdminToken('abc');
-    clearAdminToken({ reason: 'rejected' });
+    setAdminToken("abc");
+    clearAdminToken({ reason: "rejected" });
     const ts = getRejectedAt();
     expect(ts).not.toBeNull();
     expect(ts).toBeGreaterThan(0);
   });
 
-  it('clears rejectedAt on setAdminToken', () => {
-    setAdminToken('abc');
-    clearAdminToken({ reason: 'rejected' });
+  it("clears rejectedAt on setAdminToken", () => {
+    setAdminToken("abc");
+    clearAdminToken({ reason: "rejected" });
     expect(getRejectedAt()).not.toBeNull();
-    setAdminToken('def');
+    setAdminToken("def");
     expect(getRejectedAt()).toBeNull();
   });
 
-  it('notifies subscribers on set + clear', () => {
+  it("notifies subscribers on set + clear", () => {
     const cb = vi.fn();
     const unsub = subscribeAdminToken(cb);
-    setAdminToken('abc');
-    clearAdminToken({ reason: 'rejected' });
+    setAdminToken("abc");
+    clearAdminToken({ reason: "rejected" });
     expect(cb).toHaveBeenCalledTimes(2);
     unsub();
-    setAdminToken('xyz');
+    setAdminToken("xyz");
     expect(cb).toHaveBeenCalledTimes(2); // not called after unsubscribe
   });
 
-  it('reacts to a storage event from another tab', () => {
+  it("reacts to a storage event from another tab", () => {
     const cb = vi.fn();
     subscribeAdminToken(cb);
     // simulate other tab clearing the token
-    localStorage.setItem('calendar.adminToken', 'cross-tab');
+    localStorage.setItem("calendar.adminToken", "cross-tab");
     window.dispatchEvent(
-      new StorageEvent('storage', {
-        key: 'calendar.adminToken',
-        newValue: 'cross-tab',
+      new StorageEvent("storage", {
+        key: "calendar.adminToken",
+        newValue: "cross-tab",
       }),
     );
     expect(cb).toHaveBeenCalled();
-    expect(getAdminToken()).toBe('cross-tab');
+    expect(getAdminToken()).toBe("cross-tab");
   });
 });
 ```
@@ -250,8 +252,8 @@ Expected: all 6 tests fail with module-not-found / function-not-defined errors.
 Create `frontend/src/lib/adminToken.ts`:
 
 ```typescript
-const TOKEN_KEY = 'calendar.adminToken';
-const REJECTED_AT_KEY = 'calendar.adminTokenRejectedAt';
+const TOKEN_KEY = "calendar.adminToken";
+const REJECTED_AT_KEY = "calendar.adminTokenRejectedAt";
 
 const subscribers = new Set<() => void>();
 
@@ -288,10 +290,12 @@ export function setAdminToken(token: string): void {
   notify();
 }
 
-export function clearAdminToken(opts?: { reason?: 'rejected' | 'signed-out' }): void {
+export function clearAdminToken(opts?: {
+  reason?: "rejected" | "signed-out";
+}): void {
   try {
     localStorage.removeItem(TOKEN_KEY);
-    if (opts?.reason === 'rejected') {
+    if (opts?.reason === "rejected") {
       localStorage.setItem(REJECTED_AT_KEY, String(Date.now()));
     } else {
       localStorage.removeItem(REJECTED_AT_KEY);
@@ -307,8 +311,8 @@ export function subscribeAdminToken(cb: () => void): () => void {
   return () => subscribers.delete(cb);
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
     if (e.key === TOKEN_KEY || e.key === REJECTED_AT_KEY || e.key === null) {
       notify();
     }
@@ -344,6 +348,7 @@ EOF
 React hook over the pure store, via `useSyncExternalStore`.
 
 **Files:**
+
 - Create: `frontend/src/lib/useAdminToken.ts`
 - Test: `frontend/src/test/useAdminToken.test.tsx`
 
@@ -352,32 +357,32 @@ React hook over the pure store, via `useSyncExternalStore`.
 Create `frontend/src/test/useAdminToken.test.tsx`:
 
 ```typescript
-import { act, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { useAdminToken } from '../lib/useAdminToken';
-import { clearAdminToken, setAdminToken } from '../lib/adminToken';
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { useAdminToken } from "../lib/useAdminToken";
+import { clearAdminToken, setAdminToken } from "../lib/adminToken";
 
 beforeEach(() => {
   localStorage.clear();
 });
 
-describe('useAdminToken', () => {
-  it('returns null when no token is stored', () => {
+describe("useAdminToken", () => {
+  it("returns null when no token is stored", () => {
     const { result } = renderHook(() => useAdminToken());
     expect(result.current).toBeNull();
   });
 
-  it('returns the current token after set', () => {
+  it("returns the current token after set", () => {
     const { result } = renderHook(() => useAdminToken());
-    act(() => setAdminToken('abc'));
-    expect(result.current).toBe('abc');
+    act(() => setAdminToken("abc"));
+    expect(result.current).toBe("abc");
   });
 
-  it('updates after clear', () => {
-    setAdminToken('abc');
+  it("updates after clear", () => {
+    setAdminToken("abc");
     const { result } = renderHook(() => useAdminToken());
-    expect(result.current).toBe('abc');
-    act(() => clearAdminToken({ reason: 'signed-out' }));
+    expect(result.current).toBe("abc");
+    act(() => clearAdminToken({ reason: "signed-out" }));
     expect(result.current).toBeNull();
   });
 });
@@ -393,8 +398,8 @@ Expected: 3 tests fail (module not found).
 Create `frontend/src/lib/useAdminToken.ts`:
 
 ```typescript
-import { useSyncExternalStore } from 'react';
-import { getAdminToken, subscribeAdminToken } from './adminToken';
+import { useSyncExternalStore } from "react";
+import { getAdminToken, subscribeAdminToken } from "./adminToken";
 
 export function useAdminToken(): string | null {
   return useSyncExternalStore(subscribeAdminToken, getAdminToken, () => null);
@@ -429,6 +434,7 @@ EOF
 Tiny error class so query/mutation hooks can carry the HTTP status, used by the per-hook retry policy.
 
 **Files:**
+
 - Create: `frontend/src/lib/httpError.ts`
 
 - [ ] **Step 1: Implement (no test — trivial value type)**
@@ -441,7 +447,7 @@ export class HttpError extends Error {
   code: string;
   constructor(status: number, code: string, message: string) {
     super(message);
-    this.name = 'HttpError';
+    this.name = "HttpError";
     this.status = status;
     this.code = code;
   }
@@ -475,6 +481,7 @@ EOF
 Returns the runtime IANA list and exposes a small helper to inject a current value if missing (so an unfamiliar server zone stays selectable).
 
 **Files:**
+
 - Create: `frontend/src/lib/timezones.ts`
 
 - [ ] **Step 1: Implement**
@@ -488,7 +495,7 @@ function loadList(): string[] {
   // Intl.supportedValuesOf is supported in all browsers we target.
   // Throws TypeError on older runtimes; let it bubble.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const list = (Intl as any).supportedValuesOf('timeZone');
+  const list = (Intl as any).supportedValuesOf("timeZone");
   return Array.isArray(list) ? list : [];
 }
 
@@ -497,7 +504,9 @@ export function getSupportedTimezones(): string[] {
   return cached;
 }
 
-export function withCurrentTimezone(current: string | null | undefined): string[] {
+export function withCurrentTimezone(
+  current: string | null | undefined,
+): string[] {
   const list = getSupportedTimezones();
   if (!current) return list;
   return list.includes(current) ? list : [current, ...list];
@@ -532,6 +541,7 @@ EOF
 `openapi-fetch` instance with two pieces of middleware: inject `X-Admin-Token` per request + capture the sent token; on 401 clear storage only when the sent token still matches the stored one.
 
 **Files:**
+
 - Create: `frontend/src/api/adminClient.ts`
 - Test: `frontend/src/test/adminClient.test.ts`
 
@@ -540,16 +550,20 @@ EOF
 Create `frontend/src/test/adminClient.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { adminClient } from '../api/adminClient';
-import { clearAdminToken, getAdminToken, setAdminToken } from '../lib/adminToken';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { adminClient } from "../api/adminClient";
+import {
+  clearAdminToken,
+  getAdminToken,
+  setAdminToken,
+} from "../lib/adminToken";
 
 const mockFetch = vi.fn();
 
 beforeEach(() => {
   localStorage.clear();
   mockFetch.mockReset();
-  vi.stubGlobal('fetch', mockFetch);
+  vi.stubGlobal("fetch", mockFetch);
 });
 
 afterEach(() => {
@@ -559,52 +573,54 @@ afterEach(() => {
 function ok(json: unknown): Response {
   return new Response(JSON.stringify(json), {
     status: 200,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { "Content-Type": "application/json" },
   });
 }
 
 function unauthorized(): Response {
   return new Response(
-    JSON.stringify({ code: 'unauthorized', message: 'bad token' }),
-    { status: 401, headers: { 'Content-Type': 'application/json' } },
+    JSON.stringify({ code: "unauthorized", message: "bad token" }),
+    { status: 401, headers: { "Content-Type": "application/json" } },
   );
 }
 
-describe('adminClient', () => {
-  it('attaches X-Admin-Token from storage', async () => {
-    setAdminToken('tok-1');
+describe("adminClient", () => {
+  it("attaches X-Admin-Token from storage", async () => {
+    setAdminToken("tok-1");
     mockFetch.mockResolvedValue(ok({}));
-    await adminClient.GET('/admin/settings');
+    await adminClient.GET("/admin/settings");
     const req = mockFetch.mock.calls[0][0] as Request;
-    expect(req.headers.get('X-Admin-Token')).toBe('tok-1');
+    expect(req.headers.get("X-Admin-Token")).toBe("tok-1");
   });
 
-  it('omits the header when no token', async () => {
+  it("omits the header when no token", async () => {
     mockFetch.mockResolvedValue(ok({}));
-    await adminClient.GET('/admin/settings');
+    await adminClient.GET("/admin/settings");
     const req = mockFetch.mock.calls[0][0] as Request;
-    expect(req.headers.get('X-Admin-Token')).toBeNull();
+    expect(req.headers.get("X-Admin-Token")).toBeNull();
   });
 
   it('clears the token with reason "rejected" on 401', async () => {
-    setAdminToken('tok-1');
+    setAdminToken("tok-1");
     mockFetch.mockResolvedValue(unauthorized());
-    await adminClient.GET('/admin/settings');
+    await adminClient.GET("/admin/settings");
     expect(getAdminToken()).toBeNull();
-    expect(localStorage.getItem('calendar.adminTokenRejectedAt')).not.toBeNull();
+    expect(
+      localStorage.getItem("calendar.adminTokenRejectedAt"),
+    ).not.toBeNull();
   });
 
-  it('does NOT clear a different token if a stale 401 arrives late', async () => {
-    setAdminToken('tok-A');
+  it("does NOT clear a different token if a stale 401 arrives late", async () => {
+    setAdminToken("tok-A");
     let resolve!: (r: Response) => void;
     mockFetch.mockReturnValueOnce(new Promise<Response>((r) => (resolve = r)));
-    const inflight = adminClient.GET('/admin/settings');
+    const inflight = adminClient.GET("/admin/settings");
     // user replaces the token while request is in flight
-    setAdminToken('tok-B');
+    setAdminToken("tok-B");
     resolve(unauthorized());
     await inflight;
     // tok-B must still be the current token
-    expect(getAdminToken()).toBe('tok-B');
+    expect(getAdminToken()).toBe("tok-B");
   });
 });
 ```
@@ -619,10 +635,10 @@ Expected: all 4 tests fail with module-not-found errors.
 Create `frontend/src/api/adminClient.ts`:
 
 ```typescript
-import createClient from 'openapi-fetch';
-import type { paths } from './types';
-import { env } from '../lib/env';
-import { clearAdminToken, getAdminToken } from '../lib/adminToken';
+import createClient from "openapi-fetch";
+import type { paths } from "./types";
+import { env } from "../lib/env";
+import { clearAdminToken, getAdminToken } from "../lib/adminToken";
 
 type RequestWithToken = Request & { __sentToken?: string };
 
@@ -632,7 +648,7 @@ adminClient.use({
   async onRequest({ request }) {
     const token = getAdminToken();
     if (token) {
-      request.headers.set('X-Admin-Token', token);
+      request.headers.set("X-Admin-Token", token);
       (request as RequestWithToken).__sentToken = token;
     }
     return request;
@@ -642,7 +658,7 @@ adminClient.use({
       const sent = (request as RequestWithToken).__sentToken;
       const current = getAdminToken();
       if (sent && sent === current) {
-        clearAdminToken({ reason: 'rejected' });
+        clearAdminToken({ reason: "rejected" });
       }
     }
     return response;
@@ -679,6 +695,7 @@ EOF
 Wraps `adminClient.GET` / `adminClient.PUT`, throws `HttpError` on failure, and disables retries on 4xx.
 
 **Files:**
+
 - Create: `frontend/src/api/queries/settings.ts`
 
 - [ ] **Step 1: Implement**
@@ -686,15 +703,15 @@ Wraps `adminClient.GET` / `adminClient.PUT`, throws `HttpError` on failure, and 
 Create `frontend/src/api/queries/settings.ts`:
 
 ```typescript
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminClient } from '../adminClient';
-import type { components } from '../types';
-import { HttpError } from '../../lib/httpError';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { adminClient } from "../adminClient";
+import type { components } from "../types";
+import { HttpError } from "../../lib/httpError";
 
-export type OwnerSettings = components['schemas']['OwnerSettings'];
+export type OwnerSettings = components["schemas"]["OwnerSettings"];
 
 export const settingsKeys = {
-  all: ['admin', 'settings'] as const,
+  all: ["admin", "settings"] as const,
 };
 
 function isHttp4xx(err: unknown): boolean {
@@ -706,11 +723,21 @@ export function useAdminSettings() {
     queryKey: settingsKeys.all,
     retry: (count, err) => (isHttp4xx(err) ? false : count < 1),
     queryFn: async (): Promise<OwnerSettings> => {
-      const { data, error, response } = await adminClient.GET('/admin/settings');
+      const { data, error, response } =
+        await adminClient.GET("/admin/settings");
       if (error) {
-        throw new HttpError(response.status, error.code ?? 'http_error', error.message ?? 'Request failed');
+        throw new HttpError(
+          response.status,
+          error.code ?? "http_error",
+          error.message ?? "Request failed",
+        );
       }
-      if (!data) throw new HttpError(response.status, 'empty', 'Empty settings response');
+      if (!data)
+        throw new HttpError(
+          response.status,
+          "empty",
+          "Empty settings response",
+        );
       return data;
     },
   });
@@ -720,11 +747,23 @@ export function useUpdateAdminSettings() {
   const queryClient = useQueryClient();
   return useMutation<OwnerSettings, HttpError, OwnerSettings>({
     mutationFn: async (body) => {
-      const { data, error, response } = await adminClient.PUT('/admin/settings', { body });
+      const { data, error, response } = await adminClient.PUT(
+        "/admin/settings",
+        { body },
+      );
       if (error) {
-        throw new HttpError(response.status, error.code ?? 'http_error', error.message ?? 'Update failed');
+        throw new HttpError(
+          response.status,
+          error.code ?? "http_error",
+          error.message ?? "Update failed",
+        );
       }
-      if (!data) throw new HttpError(response.status, 'empty', 'Empty settings response');
+      if (!data)
+        throw new HttpError(
+          response.status,
+          "empty",
+          "Empty settings response",
+        );
       return data;
     },
     retry: (count, err) => (isHttp4xx(err) ? false : count < 1),
@@ -761,6 +800,7 @@ EOF
 ## Task 8 — Settings Zod schema + normalizer (`features/admin/settings-schema.ts`)
 
 **Files:**
+
 - Create: `frontend/src/features/admin/settings-schema.ts`
 - Test: `frontend/src/test/settings-schema.test.ts`
 
@@ -769,63 +809,72 @@ EOF
 Create `frontend/src/test/settings-schema.test.ts`:
 
 ```typescript
-import { describe, expect, it } from 'vitest';
-import { SettingsFormSchema, normalizeSettings } from '../features/admin/settings-schema';
+import { describe, expect, it } from "vitest";
+import {
+  SettingsFormSchema,
+  normalizeSettings,
+} from "../features/admin/settings-schema";
 
 const okValues = {
-  timezone: 'Europe/Moscow',
+  timezone: "Europe/Moscow",
   workingHours: {
-    monday: { status: 'open', start: '09:00', end: '18:00' },
-    tuesday: { status: 'open', start: '09:00', end: '18:00' },
-    wednesday: { status: 'open', start: '09:00', end: '18:00' },
-    thursday: { status: 'open', start: '09:00', end: '18:00' },
-    friday: { status: 'open', start: '09:00', end: '17:00' },
-    saturday: { status: 'closed' },
-    sunday: { status: 'closed' },
+    monday: { status: "open", start: "09:00", end: "18:00" },
+    tuesday: { status: "open", start: "09:00", end: "18:00" },
+    wednesday: { status: "open", start: "09:00", end: "18:00" },
+    thursday: { status: "open", start: "09:00", end: "18:00" },
+    friday: { status: "open", start: "09:00", end: "17:00" },
+    saturday: { status: "closed" },
+    sunday: { status: "closed" },
   },
 } as const;
 
-describe('SettingsFormSchema', () => {
-  it('accepts valid values', () => {
+describe("SettingsFormSchema", () => {
+  it("accepts valid values", () => {
     const result = SettingsFormSchema.safeParse(okValues);
     expect(result.success).toBe(true);
   });
 
-  it('rejects an unknown timezone', () => {
-    const bad = { ...okValues, timezone: 'Mars/Olympus_Mons' };
+  it("rejects an unknown timezone", () => {
+    const bad = { ...okValues, timezone: "Mars/Olympus_Mons" };
     expect(SettingsFormSchema.safeParse(bad).success).toBe(false);
   });
 
-  it('rejects end <= start on an open day', () => {
+  it("rejects end <= start on an open day", () => {
     const bad = {
       ...okValues,
-      workingHours: { ...okValues.workingHours, monday: { status: 'open', start: '18:00', end: '09:00' } },
+      workingHours: {
+        ...okValues.workingHours,
+        monday: { status: "open", start: "18:00", end: "09:00" },
+      },
     } as typeof okValues;
     expect(SettingsFormSchema.safeParse(bad).success).toBe(false);
   });
 
-  it('rejects extraneous start/end on a closed day', () => {
+  it("rejects extraneous start/end on a closed day", () => {
     const bad = {
       ...okValues,
       // @ts-expect-error testing strictness against extra fields
-      workingHours: { ...okValues.workingHours, saturday: { status: 'closed', start: '09:00', end: '18:00' } },
+      workingHours: {
+        ...okValues.workingHours,
+        saturday: { status: "closed", start: "09:00", end: "18:00" },
+      },
     };
     expect(SettingsFormSchema.safeParse(bad).success).toBe(false);
   });
 });
 
-describe('normalizeSettings', () => {
-  it('drops start/end from closed days even if the form holds them', () => {
+describe("normalizeSettings", () => {
+  it("drops start/end from closed days even if the form holds them", () => {
     const formValues = {
-      timezone: 'Europe/Moscow',
+      timezone: "Europe/Moscow",
       workingHours: {
         ...okValues.workingHours,
         // simulate the form not having stripped these on toggle
-        saturday: { status: 'closed', start: '09:00', end: '18:00' },
+        saturday: { status: "closed", start: "09:00", end: "18:00" },
       },
     } as never;
     const out = normalizeSettings(formValues);
-    expect(out.workingHours.saturday).toEqual({ status: 'closed' });
+    expect(out.workingHours.saturday).toEqual({ status: "closed" });
   });
 });
 ```
@@ -840,27 +889,33 @@ Expected: tests fail (module not found).
 Create `frontend/src/features/admin/settings-schema.ts`:
 
 ```typescript
-import { z } from 'zod';
-import type { components } from '../../api/types';
-import { getSupportedTimezones } from '../../lib/timezones';
+import { z } from "zod";
+import type { components } from "../../api/types";
+import { getSupportedTimezones } from "../../lib/timezones";
 
 const SUPPORTED_TIMEZONES = new Set<string>(getSupportedTimezones());
 
-const Hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:MM (24h)');
+const Hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM (24h)");
 
-const ClosedDay = z.object({ status: z.literal('closed') }).strict();
+const ClosedDay = z.object({ status: z.literal("closed") }).strict();
 const OpenDay = z
-  .object({ status: z.literal('open'), start: Hhmm, end: Hhmm })
+  .object({ status: z.literal("open"), start: Hhmm, end: Hhmm })
   .strict()
-  .refine((d) => d.end > d.start, { message: 'End must be after start', path: ['end'] });
+  .refine((d) => d.end > d.start, {
+    message: "End must be after start",
+    path: ["end"],
+  });
 
-const WorkingDay = z.discriminatedUnion('status', [ClosedDay, OpenDay]);
+const WorkingDay = z.discriminatedUnion("status", [ClosedDay, OpenDay]);
 
 export const SettingsFormSchema = z.object({
   timezone: z
     .string()
-    .min(1, 'Timezone is required')
-    .refine((v) => SUPPORTED_TIMEZONES.has(v), 'Pick a recognised IANA timezone'),
+    .min(1, "Timezone is required")
+    .refine(
+      (v) => SUPPORTED_TIMEZONES.has(v),
+      "Pick a recognised IANA timezone",
+    ),
   workingHours: z.object({
     monday: WorkingDay,
     tuesday: WorkingDay,
@@ -874,19 +929,27 @@ export const SettingsFormSchema = z.object({
 
 export type SettingsFormValues = z.infer<typeof SettingsFormSchema>;
 
-type DayKey = keyof SettingsFormValues['workingHours'];
-const DAY_KEYS: DayKey[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+type DayKey = keyof SettingsFormValues["workingHours"];
+const DAY_KEYS: DayKey[] = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+];
 
 export function normalizeSettings(
   values: SettingsFormValues,
-): components['schemas']['OwnerSettings'] {
-  const wh = {} as components['schemas']['OwnerSettings']['workingHours'];
+): components["schemas"]["OwnerSettings"] {
+  const wh = {} as components["schemas"]["OwnerSettings"]["workingHours"];
   for (const k of DAY_KEYS) {
     const day = values.workingHours[k];
-    if (day.status === 'closed') {
-      wh[k] = { status: 'closed' };
+    if (day.status === "closed") {
+      wh[k] = { status: "closed" };
     } else {
-      wh[k] = { status: 'open', start: day.start, end: day.end };
+      wh[k] = { status: "open", start: day.start, end: day.end };
     }
   }
   return { timezone: values.timezone, workingHours: wh };
@@ -922,6 +985,7 @@ EOF
 The blocking modal: PasswordInput, validate-then-store, inline error states, submit lock, `rejectedAt`-aware mount.
 
 **Files:**
+
 - Create: `frontend/src/features/admin/AdminTokenModal.tsx`
 - Test: `frontend/src/test/AdminTokenModal.test.tsx`
 
@@ -1150,6 +1214,7 @@ EOF
 ## Task 10 — `<AdminGate />`
 
 **Files:**
+
 - Create: `frontend/src/components/AdminGate.tsx`
 - Test: `frontend/src/test/AdminGate.test.tsx`
 
@@ -1253,6 +1318,7 @@ EOF
 ## Task 11 — `<AdminLayout />`
 
 **Files:**
+
 - Create: `frontend/src/components/AdminLayout.tsx`
 - Test: `frontend/src/test/AdminLayout.test.tsx`
 
@@ -1402,6 +1468,7 @@ EOF
 The form: timezone Select + 7 working-hours rows + Save / Reset.
 
 **Files:**
+
 - Create: `frontend/src/features/admin/SettingsPage.tsx`
 - Test: `frontend/src/test/settings-page.test.tsx`
 
@@ -1783,6 +1850,7 @@ EOF
 ## Task 13 — Wire admin routes into `routes.tsx`
 
 **Files:**
+
 - Modify: `frontend/src/routes.tsx`
 
 - [ ] **Step 1: Update routes**
@@ -1833,6 +1901,7 @@ export const router = createBrowserRouter([
 ```bash
 npm run typecheck && npm run lint && npm test && npm run build
 ```
+
 Expected: all green.
 
 - [ ] **Step 3: Commit**
@@ -1858,6 +1927,7 @@ EOF
 Per the design's risk register, add a one-paragraph security note to `frontend/README.md` so the trade-off is visible to future readers.
 
 **Files:**
+
 - Modify: `frontend/README.md`
 
 - [ ] **Step 1: Add the note**
@@ -1901,12 +1971,14 @@ Run from `frontend/`:
 ```bash
 npm run typecheck && npm run lint && npm test && npm run build
 ```
+
 Expected: all green.
 
 - [ ] **Step 2: Walk the flow against Prism**
 
 Run: `npm run dev:full`
 Open `http://localhost:5173/admin` in a browser. Expected sequence:
+
 1. Modal appears with "Admin sign in" title.
 2. Enter any non-empty token → modal closes, settings page renders with `Europe/Moscow` and the 7-day schedule from the contract examples.
 3. Toggle Saturday → Open with 09:00 / 18:00 → click "Save changes". A green toast "Settings saved." appears.
@@ -1950,6 +2022,7 @@ EOF
 ## Self-review (skill checklist)
 
 **Spec coverage:**
+
 - Routes (gate outside, layout inside, sibling branch) → Task 13.
 - `lib/adminToken.ts` (store + subscribers + storage event + rejectedAt) → Task 2.
 - `lib/useAdminToken.ts` (hook only) → Task 3.

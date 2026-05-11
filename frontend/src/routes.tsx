@@ -10,23 +10,12 @@ import { ConfirmPage } from './features/booking/ConfirmPage';
 import { SuccessPage } from './features/booking/SuccessPage';
 import { NotFoundPage } from './features/NotFoundPage';
 
-const lazyNamed = <K extends string>(
-  loader: () => Promise<Record<K, ComponentType>>,
-  name: K,
-) => lazy(() => loader().then((m) => ({ default: m[name] })));
+const lazyNamed = <K extends string>(loader: () => Promise<Record<K, ComponentType>>, name: K) =>
+  lazy(() => loader().then((m) => ({ default: m[name] })));
 
-const SettingsPage = lazyNamed(
-  () => import('./features/admin/SettingsPage'),
-  'SettingsPage',
-);
-const EventTypesPage = lazyNamed(
-  () => import('./features/admin/EventTypesPage'),
-  'EventTypesPage',
-);
-const BookingsPage = lazyNamed(
-  () => import('./features/admin/BookingsPage'),
-  'BookingsPage',
-);
+const SettingsPage = lazyNamed(() => import('./features/admin/SettingsPage'), 'SettingsPage');
+const EventTypesPage = lazyNamed(() => import('./features/admin/EventTypesPage'), 'EventTypesPage');
+const BookingsPage = lazyNamed(() => import('./features/admin/BookingsPage'), 'BookingsPage');
 
 export const router = createBrowserRouter([
   {
