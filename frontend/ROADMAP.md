@@ -9,8 +9,8 @@ What's left after the [v1 vertical slice](README.md). Phases are independently s
 | 1 | Foundations + guest happy path (catalog → slot picker → confirm → success) | ✅ Shipped |
 | 2 | Admin token + settings | ✅ Shipped (PR #4, merged 2026-05-10) |
 | 3 | Admin event-type CRUD | ✅ Shipped (PR #5, merged 2026-05-10) |
-| 4 | Admin bookings (list + cancel) | 🟡 Next — see [Phase 4 section](#phase-4--admin-bookings) below |
-| 5 | Cross-cutting polish (code-split, a11y, tests, CI) | ⬜ |
+| 4 | Admin bookings (list + cancel) | ✅ Shipped (PR #9, merged 2026-05-11) |
+| 5 | Cross-cutting polish (code-split, a11y, tests, CI) | 🟡 Next |
 | 6 | Real backend integration | ⬜ |
 
 ---
@@ -166,63 +166,17 @@ Phase 5 will codify this as a CI workflow.
 
 ## Phase 4 — Admin bookings
 
-**Goal:** the owner can see upcoming bookings and cancel any one of them. Contract endpoints involved: `GET /admin/bookings` (returns `Booking[]` sorted by `startTime` ascending; past bookings excluded server-side; spec §2.3) and `DELETE /admin/bookings/{id}` (returns 204; 404 on stale id; 401 on missing/bad token).
+**Status:** ✅ Shipped — `/admin/bookings` lists upcoming bookings in the owner's timezone with a per-row Cancel that opens a confirm modal and triggers an optimistic DELETE. Spec: [`docs/superpowers/specs/2026-05-10-admin-bookings-design.md`](../docs/superpowers/specs/2026-05-10-admin-bookings-design.md). Plan: [`docs/superpowers/plans/2026-05-10-admin-bookings.md`](../docs/superpowers/plans/2026-05-10-admin-bookings.md).
 
-This is the last admin slice. After it lands the v1 admin surface is feature-complete and Phase 5 (polish, CI, a11y) becomes the natural next pickup.
+The v1 admin surface is now feature-complete; Phase 5 (polish, CI, a11y) is the natural next pickup.
 
-### Open UX questions to brainstorm before coding
+### Patterns introduced (worth mirroring in future phases)
 
-These should be settled in a brainstorming pass before writing the spec/plan — there is no single right answer:
-
-1. **Cancel confirmation UX** — single-button cancel (with toast "Booking cancelled" + Undo) vs. confirm modal ("Are you sure? This frees the slot."). Cancel is destructive (the slot becomes bookable again, the guest is silently uninformed in v1), so a confirm modal is a defensible default.
-2. **Empty state copy** — "No upcoming bookings" is clear; whether to add guidance ("Share an event-type link to start receiving bookings") is a small judgment call.
-3. **Time rendering** — the contract returns `startTime` with offset and the owner's `timezone` is on `OwnerSettings`. Phase 1 already established the `formatHourMinute(iso, tz)` / `formatFullHuman(iso, tz)` helpers in [`lib/datetime.ts`](src/lib/datetime.ts) — Phase 4 reuses them. Source the timezone from `useAdminSettings()` (already cached after the first admin visit).
-4. **Notes display** — the contract field is free-form text. Truncate to a couple of lines with a tooltip / popover, or render full inline? Tradeoff between density and readability.
-5. **Optimistic delete** — same pattern as Phase 3's active toggle (`onMutate` snapshots, `onError` rolls back, `onSuccess` notifies, `onSettled` invalidates). Probably the right call again, but worth a quick confirmation.
-
-### Plan sketch (refined during brainstorming)
-
-These are starting points, not commitments. The brainstorming pass will turn them into a spec and a TDD plan, mirroring the Phase 2 / Phase 3 shape ([Phase 3 spec](../docs/superpowers/specs/2026-05-10-admin-event-types-design.md), [Phase 3 plan](../docs/superpowers/plans/2026-05-10-admin-event-types.md)).
-
-**File map (proposed):**
-
-```
-contract/admin.tsp                                 # MODIFY: @opExample on AdminBookings.{list, cancel}
-frontend/src/
-├── api/queries/
-│   └── bookingsAdmin.ts                           # CREATE — useAdminBookings + useCancelBooking
-├── features/admin/
-│   ├── BookingsPage.tsx                           # CREATE — list + cancel
-│   └── CancelBookingModal.tsx                     # CREATE — confirm modal (decision pending)
-├── components/AdminLayout.tsx                     # MODIFY: add "Bookings" nav link
-├── routes.tsx                                     # MODIFY: add 'bookings' child route
-└── test/
-    ├── bookingsAdmin.test.tsx                     # CREATE — hook tests
-    ├── BookingsPage.test.tsx                      # CREATE — page + cancel tests
-    └── CancelBookingModal.test.tsx                # (only if a confirm modal is chosen)
-```
-
-**Tasks (TDD-style, ~6-8 expected after brainstorming):**
-
-- [ ] Add `@opExample` to `AdminBookings.list` (3-4 sample bookings spanning two event types — the same `intro-call` / `deep-dive` slugs Phase 1/3 use, so the rendered list looks coherent against Prism). Add `@opExample` to `AdminBookings.cancel` returning 204.
-- [ ] `bookingsAdmin.ts` — `useAdminBookings` (GET, `HttpError`, retry-false-on-4xx) and `useCancelBooking` (DELETE, optimistic remove, rollback, list-invalidate).
-- [ ] `BookingsPage.tsx` — table sorted by `startTime`: date/time (formatted via `formatFullHuman` in the owner timezone), event-type name, duration (`durationMinutesSnapshot` — *not* the live event-type duration, per spec §1.2), guest name, guest email, notes (truncated). Per-row Cancel button. Loading skeleton, `<ErrorState />`, empty state.
-- [ ] (If brainstorming chooses confirm modal) `CancelBookingModal.tsx` — Mantine Modal with the booking's start time + guest name + a destructive "Cancel booking" button. Sources timezone from `useAdminSettings`.
-- [ ] Wire the new route into `routes.tsx` and add the "Bookings" link to `<AdminLayout>` (sibling of Settings + Event types).
-- [ ] Smoke tests: list render, cancel happy path with optimistic remove + post-success notification, cancel rollback on 500, 404 on stale id, empty state.
-
-### Things worth verifying upfront against Prism
-
-Before writing the page, do this quick walk so the data model is concrete:
-
-```bash
-# from frontend/
-npm run gen:api                                              # rebuilds the contract
-npm run mock                                                  # in another shell
-curl -s -H 'X-Admin-Token: x' http://127.0.0.1:4010/admin/bookings | python3 -m json.tool
-```
-
-If Prism returns an empty array (no `@opExample` yet), the first task is the contract addition. If it returns nulls inside booking objects, the example needs more fields filled in.
+- **Modal-with-`isPending` over mount/unmount**: the cancel modal stays mounted while the DELETE is in flight, the destructive button shows a loading spinner, and `closeOnEscape` / `closeOnClickOutside` / the outer `onClose` all gate on `isPending` so the user can't accidentally dismiss mid-mutation.
+- **404-as-benign-race for delete**: if the server returns 404 on a cancel, the hook's `onError` short-circuits without rolling back (the row was optimistically removed, the server agrees it's gone) and the page surfaces a gentler `"Already cancelled"` toast.
+- **Aria-labelled per-row destructive button**: every row's Cancel renders with `aria-label="Cancel {eventType} with {guestName} on {date}"` so screen-reader users know which row's button they're on.
+- **Tooltip-only-when-truncated for free-form text**: explicit `truncate()` at a fixed character limit; the tooltip only renders when the cell is actually clipped, and the trigger is a real interactive element (`<UnstyledButton>`) so the tooltip is keyboard-reachable.
+- **`PageHeader` hoisted across loading / error / data branches** so the `<h2>` landmark stays visible regardless of query state.
 
 ### Hard rules from the spec / contract (don't drift)
 
