@@ -21,7 +21,7 @@ v1 has **no real authentication**. The owner-only `/admin/*` endpoints are prote
 | [`docs/business-description.md`](docs/business-description.md) | Authoritative description of the v1 behaviour: roles, entities, flows, slot rules, non-goals, verification scenarios.                                                                    |
 | [`contract/`](contract)                                        | TypeSpec API contract that compiles to OpenAPI 3.1. Source of truth for the HTTP API shared between frontend and backend.                                                                |
 | [`frontend/`](frontend)                                        | Vite + React + TypeScript + Mantine app. Consumes only the contract; talks to a Prism mock locally. See [`frontend/README.md`](frontend/README.md) for setup, scripts, and walkthroughs. |
-| [`backend/`](backend)                                          | Go + Gin HTTP service. Implements the contract end-to-end; v1 uses in-memory storage. See [`backend/README.md`](backend/README.md). |
+| [`backend/`](backend)                                          | Go + Gin HTTP service. Implements the contract end-to-end; v1 uses in-memory storage. See [`backend/README.md`](backend/README.md).                                                      |
 
 A database directory will be added in a future phase, alongside a PostgreSQL/GORM swap-in for the backend.
 
