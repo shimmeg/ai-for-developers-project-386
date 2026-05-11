@@ -223,7 +223,7 @@ These came out of the independent review of Phase 1 + Phase 2 ([review prompt at
 - [x] **Heading hierarchy** — each route now renders a visible `<Title order={1} fz="h2">` page title (PR-A); brand marks in `Layout` / `AdminLayout` demoted to non-heading `Text`. `EmptyState` already accepts an `order` prop; callers pass `order={3}`.
 - [x] **Form-input plumbing in SettingsPage** — working-hours `TimeInput`s use `form.getInputProps('workingHours.<day>.<start|end>')` at [src/features/admin/SettingsPage.tsx](src/features/admin/SettingsPage.tsx).
 - [x] **Centralised `pingAdmin` helper** — `pingAdmin(token)` lives in [src/api/adminClient.ts](src/api/adminClient.ts); `AdminTokenModal` consumes it.
-- [x] **Prettier hygiene** — full tree passes `prettier --check .` (PR-A).
+- [x] **Prettier hygiene (frontend/ scope)** — `prettier --check .` from `frontend/` is clean (PR-A). Repo-wide sweep on accumulated docs/specs/plans outside `frontend/` deferred to Phase 5 follow-ups (see `docs/superpowers/plans/2026-05-11-phase-5-code-split-followups.md`, item 6).
 - [x] **EmptyState `role`** — no `role="link"` remains in `src/`.
 - [x] **HMR-safe storage listener** — `window.addEventListener('storage', …)` in [src/lib/adminToken.ts](src/lib/adminToken.ts) is guarded by `import.meta.hot?.dispose(...)`.
 - [x] **Drop `as any`** — [src/lib/timezones.ts](src/lib/timezones.ts) uses `Intl.supportedValuesOf?.('timeZone')` directly.

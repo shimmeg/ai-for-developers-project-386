@@ -35,27 +35,13 @@ This is exactly the kind of finding that the already-planned Phase 5 task **"Bun
 
 Document the baseline now: **after Phase 5 code-split, main chunk is 353 KB, the shared ErrorState chunk is 165 KB.** The bundle-analyzer PR should compare against these numbers.
 
-### 3. `lazyNamed`'s `ComponentType` generic could be tighter
-
-[`frontend/src/routes.tsx`](../../../frontend/src/routes.tsx) defines:
-```ts
-const lazyNamed = <K extends string>(
-  loader: () => Promise<Record<K, ComponentType>>,
-  name: K,
-) => lazy(() => loader().then((m) => ({ default: m[name] })));
-```
-
-`ComponentType` here is `ComponentType<unknown>`-equivalent. All three current uses are zero-prop pages, so this is fine. If the helper ever gets used for a prop-requiring component, TypeScript would let `<LazyComponent />` (no props) compile and the runtime would render without the required props.
-
-**Tightening:** narrow to `ComponentType<Record<string, never>>` (or `ComponentType<{}>`) to make the no-props contract explicit. Optional cleanup; only worth doing when extracting the helper into a shared module.
-
-### 4. Suspense fallback could reserve vertical space — minor layout shift on chunk swap
+### 3. Suspense fallback could reserve vertical space — minor layout shift on chunk swap
 
 [`frontend/src/components/AdminLayout.tsx`](../../../frontend/src/components/AdminLayout.tsx)'s fallback is `<Stack align="center" mt="xl"><Loader /></Stack>` — about 40 px tall. When the admin page chunk resolves, the content (tables, forms) is much taller, so there's a perceptible jump.
 
 **Polish:** `minHeight="60vh"` on the Stack so the fallback reserves the eventual content's vertical space. Pairs with the "Loading skeletons" Phase 5 task (which will replace this Loader entirely on the catalog/slot-picker side).
 
-### 5. Permanent integration test for "leaf render error preserves layout shell"
+### 4. Permanent integration test for "leaf render error preserves layout shell"
 
 The verification of the pass-through pattern is currently done by temporarily inserting `throw new Error('test')` in a leaf component (per Task 2 of the plan), browser-checking that chrome stays mounted, and reverting. The chrome-preservation invariant is the load-bearing detail of this entire PR and has no automated regression test.
 
@@ -65,7 +51,7 @@ Adding an integration test (`createMemoryRouter` with a throwing element + a lay
 
 ## From the close-out commit (dropped from PR #12 scope)
 
-### 6. Prettier sweep across the repo's accumulated unformatted files
+### 5. Prettier sweep across the repo's accumulated unformatted files
 
 A repo-wide `prettier --write` sweep was bundled into PR #12's original close-out commit but moved out to keep that PR's diff focused. The following files were modified by prettier and reverted out of scope:
 
@@ -102,4 +88,6 @@ Each is independently shippable per the ROADMAP's "These are independent tasks; 
 
 ---
 
-**Source:** PR [#12](https://github.com/shimmeg/ai-for-developers-project-386/pull/12) — Phase 5: code-split admin routes + route-level error boundaries. Items 1-5 surfaced in the per-task and final code reviews of that PR; item 6 was a discretionary cleanup moved out at user request to keep PR #12's scope minimal.
+**Source:** PR [#12](https://github.com/shimmeg/ai-for-developers-project-386/pull/12) — Phase 5: code-split admin routes + route-level error boundaries. Items 1-4 surfaced in the per-task and final code reviews of that PR; item 5 was a discretionary Prettier cleanup moved out at user request to keep PR #12's scope minimal.
+
+**Removed during a final Codex pass:** an earlier draft of this doc had a 6th item ("`lazyNamed`'s `ComponentType` generic could be tighter") flagging a supposed prop-safety risk. Codex correctly pointed out that `ComponentType` defaults to `ComponentType<{}>`, which already rejects prop-requiring components via TS contravariance — the risk doesn't exist. The original Task 3 and final reviewer notes claiming otherwise were inaccurate.
