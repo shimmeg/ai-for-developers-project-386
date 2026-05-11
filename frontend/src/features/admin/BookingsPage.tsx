@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   Button,
   Card,
-  Center,
   Skeleton,
   Stack,
   Table,
@@ -14,6 +13,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconCalendarEvent } from '@tabler/icons-react';
 import { Link } from 'react-router';
+import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
 import { TimezoneBanner } from '../../components/TimezoneBanner';
 import { useAdminBookings, useCancelBooking, type Booking } from '../../api/queries/bookingsAdmin';
@@ -29,6 +29,13 @@ function truncate(text: string, n: number): string {
 
 type ConfirmState = { kind: 'closed' } | { kind: 'open'; booking: Booking };
 
+// Hoisted so the page heading stays visible across loading, error, and data
+// branches — screen-reader users keep the "Bookings" landmark regardless of
+// query state.
+function PageHeader() {
+  return <Title order={2}>Bookings</Title>;
+}
+
 export function BookingsPage() {
   const listQ = useAdminBookings();
   const settingsQ = useAdminSettings();
@@ -38,7 +45,7 @@ export function BookingsPage() {
   if (listQ.isPending || settingsQ.isPending) {
     return (
       <Stack gap="md">
-        <Title order={2}>Bookings</Title>
+        <PageHeader />
         {Array.from({ length: 3 }).map((_, i) => (
           <Skeleton key={i} h={48} />
         ))}
@@ -56,14 +63,17 @@ export function BookingsPage() {
       ? listQ.error.message
       : (settingsQ.error?.message ?? 'Please try again.');
     return (
-      <ErrorState
-        title={isList ? "Couldn't load bookings" : "Couldn't load settings"}
-        message={message}
-        onRetry={() => {
-          if (listQ.isError) listQ.refetch();
-          if (settingsQ.isError) settingsQ.refetch();
-        }}
-      />
+      <Stack gap="md">
+        <PageHeader />
+        <ErrorState
+          title={isList ? "Couldn't load bookings" : "Couldn't load settings"}
+          message={message}
+          onRetry={() => {
+            if (listQ.isError) listQ.refetch();
+            if (settingsQ.isError) settingsQ.refetch();
+          }}
+        />
+      </Stack>
     );
   }
 
@@ -103,27 +113,26 @@ export function BookingsPage() {
   return (
     <Stack gap="md">
       <Stack gap={4}>
-        <Title order={2}>Bookings</Title>
+        <PageHeader />
         <TimezoneBanner timezone={timezone} />
       </Stack>
 
       {items.length === 0 ? (
         <Card withBorder p="xl">
-          <Center>
-            <Stack align="center" gap="sm">
-              <Title order={4}>No upcoming bookings yet</Title>
-              <Text c="dimmed" size="sm" ta="center">
-                Share a link from Event types to start receiving bookings.
-              </Text>
-              <Button
-                component={Link}
-                to="/admin/event-types"
-                leftSection={<IconCalendarEvent size={16} />}
-              >
-                Go to Event types
-              </Button>
-            </Stack>
-          </Center>
+          <Stack align="center" gap="sm">
+            <EmptyState
+              order={3}
+              title="No upcoming bookings yet"
+              description="Share a link from Event types to start receiving bookings."
+            />
+            <Button
+              component={Link}
+              to="/admin/event-types"
+              leftSection={<IconCalendarEvent size={16} />}
+            >
+              Go to Event types
+            </Button>
+          </Stack>
         </Card>
       ) : (
         <Table>
