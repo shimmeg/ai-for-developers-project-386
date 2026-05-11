@@ -54,6 +54,7 @@ frontend/src/
 Updates the contract so Prism returns realistic `OwnerSettings` examples for `GET` and `PUT /admin/settings`. Without this the form has nothing to populate against the mock.
 
 **Files:**
+
 - Modify: `contract/admin.tsp`
 
 - [ ] **Step 1: Add `@opExample` decorators**
@@ -158,6 +159,7 @@ EOF
 Pure module: getters/setters for the token + the `rejectedAt` flag, with a subscribe API for `useSyncExternalStore` and cross-tab `storage` event handling.
 
 **Files:**
+
 - Create: `frontend/src/lib/adminToken.ts`
 - Test: `frontend/src/test/adminToken.test.ts`
 
@@ -344,6 +346,7 @@ EOF
 React hook over the pure store, via `useSyncExternalStore`.
 
 **Files:**
+
 - Create: `frontend/src/lib/useAdminToken.ts`
 - Test: `frontend/src/test/useAdminToken.test.tsx`
 
@@ -429,6 +432,7 @@ EOF
 Tiny error class so query/mutation hooks can carry the HTTP status, used by the per-hook retry policy.
 
 **Files:**
+
 - Create: `frontend/src/lib/httpError.ts`
 
 - [ ] **Step 1: Implement (no test — trivial value type)**
@@ -475,6 +479,7 @@ EOF
 Returns the runtime IANA list and exposes a small helper to inject a current value if missing (so an unfamiliar server zone stays selectable).
 
 **Files:**
+
 - Create: `frontend/src/lib/timezones.ts`
 
 - [ ] **Step 1: Implement**
@@ -532,6 +537,7 @@ EOF
 `openapi-fetch` instance with two pieces of middleware: inject `X-Admin-Token` per request + capture the sent token; on 401 clear storage only when the sent token still matches the stored one.
 
 **Files:**
+
 - Create: `frontend/src/api/adminClient.ts`
 - Test: `frontend/src/test/adminClient.test.ts`
 
@@ -564,10 +570,10 @@ function ok(json: unknown): Response {
 }
 
 function unauthorized(): Response {
-  return new Response(
-    JSON.stringify({ code: 'unauthorized', message: 'bad token' }),
-    { status: 401, headers: { 'Content-Type': 'application/json' } },
-  );
+  return new Response(JSON.stringify({ code: 'unauthorized', message: 'bad token' }), {
+    status: 401,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 describe('adminClient', () => {
@@ -679,6 +685,7 @@ EOF
 Wraps `adminClient.GET` / `adminClient.PUT`, throws `HttpError` on failure, and disables retries on 4xx.
 
 **Files:**
+
 - Create: `frontend/src/api/queries/settings.ts`
 
 - [ ] **Step 1: Implement**
@@ -708,7 +715,11 @@ export function useAdminSettings() {
     queryFn: async (): Promise<OwnerSettings> => {
       const { data, error, response } = await adminClient.GET('/admin/settings');
       if (error) {
-        throw new HttpError(response.status, error.code ?? 'http_error', error.message ?? 'Request failed');
+        throw new HttpError(
+          response.status,
+          error.code ?? 'http_error',
+          error.message ?? 'Request failed',
+        );
       }
       if (!data) throw new HttpError(response.status, 'empty', 'Empty settings response');
       return data;
@@ -722,7 +733,11 @@ export function useUpdateAdminSettings() {
     mutationFn: async (body) => {
       const { data, error, response } = await adminClient.PUT('/admin/settings', { body });
       if (error) {
-        throw new HttpError(response.status, error.code ?? 'http_error', error.message ?? 'Update failed');
+        throw new HttpError(
+          response.status,
+          error.code ?? 'http_error',
+          error.message ?? 'Update failed',
+        );
       }
       if (!data) throw new HttpError(response.status, 'empty', 'Empty settings response');
       return data;
@@ -761,6 +776,7 @@ EOF
 ## Task 8 — Settings Zod schema + normalizer (`features/admin/settings-schema.ts`)
 
 **Files:**
+
 - Create: `frontend/src/features/admin/settings-schema.ts`
 - Test: `frontend/src/test/settings-schema.test.ts`
 
@@ -799,7 +815,10 @@ describe('SettingsFormSchema', () => {
   it('rejects end <= start on an open day', () => {
     const bad = {
       ...okValues,
-      workingHours: { ...okValues.workingHours, monday: { status: 'open', start: '18:00', end: '09:00' } },
+      workingHours: {
+        ...okValues.workingHours,
+        monday: { status: 'open', start: '18:00', end: '09:00' },
+      },
     } as typeof okValues;
     expect(SettingsFormSchema.safeParse(bad).success).toBe(false);
   });
@@ -808,7 +827,10 @@ describe('SettingsFormSchema', () => {
     const bad = {
       ...okValues,
       // @ts-expect-error testing strictness against extra fields
-      workingHours: { ...okValues.workingHours, saturday: { status: 'closed', start: '09:00', end: '18:00' } },
+      workingHours: {
+        ...okValues.workingHours,
+        saturday: { status: 'closed', start: '09:00', end: '18:00' },
+      },
     };
     expect(SettingsFormSchema.safeParse(bad).success).toBe(false);
   });
@@ -875,7 +897,15 @@ export const SettingsFormSchema = z.object({
 export type SettingsFormValues = z.infer<typeof SettingsFormSchema>;
 
 type DayKey = keyof SettingsFormValues['workingHours'];
-const DAY_KEYS: DayKey[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const DAY_KEYS: DayKey[] = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+];
 
 export function normalizeSettings(
   values: SettingsFormValues,
@@ -922,6 +952,7 @@ EOF
 The blocking modal: PasswordInput, validate-then-store, inline error states, submit lock, `rejectedAt`-aware mount.
 
 **Files:**
+
 - Create: `frontend/src/features/admin/AdminTokenModal.tsx`
 - Test: `frontend/src/test/AdminTokenModal.test.tsx`
 
@@ -1150,6 +1181,7 @@ EOF
 ## Task 10 — `<AdminGate />`
 
 **Files:**
+
 - Create: `frontend/src/components/AdminGate.tsx`
 - Test: `frontend/src/test/AdminGate.test.tsx`
 
@@ -1253,6 +1285,7 @@ EOF
 ## Task 11 — `<AdminLayout />`
 
 **Files:**
+
 - Create: `frontend/src/components/AdminLayout.tsx`
 - Test: `frontend/src/test/AdminLayout.test.tsx`
 
@@ -1402,6 +1435,7 @@ EOF
 The form: timezone Select + 7 working-hours rows + Save / Reset.
 
 **Files:**
+
 - Create: `frontend/src/features/admin/SettingsPage.tsx`
 - Test: `frontend/src/test/settings-page.test.tsx`
 
@@ -1783,6 +1817,7 @@ EOF
 ## Task 13 — Wire admin routes into `routes.tsx`
 
 **Files:**
+
 - Modify: `frontend/src/routes.tsx`
 
 - [ ] **Step 1: Update routes**
@@ -1833,6 +1868,7 @@ export const router = createBrowserRouter([
 ```bash
 npm run typecheck && npm run lint && npm test && npm run build
 ```
+
 Expected: all green.
 
 - [ ] **Step 3: Commit**
@@ -1858,6 +1894,7 @@ EOF
 Per the design's risk register, add a one-paragraph security note to `frontend/README.md` so the trade-off is visible to future readers.
 
 **Files:**
+
 - Modify: `frontend/README.md`
 
 - [ ] **Step 1: Add the note**
@@ -1901,12 +1938,14 @@ Run from `frontend/`:
 ```bash
 npm run typecheck && npm run lint && npm test && npm run build
 ```
+
 Expected: all green.
 
 - [ ] **Step 2: Walk the flow against Prism**
 
 Run: `npm run dev:full`
 Open `http://localhost:5173/admin` in a browser. Expected sequence:
+
 1. Modal appears with "Admin sign in" title.
 2. Enter any non-empty token → modal closes, settings page renders with `Europe/Moscow` and the 7-day schedule from the contract examples.
 3. Toggle Saturday → Open with 09:00 / 18:00 → click "Save changes". A green toast "Settings saved." appears.
@@ -1950,6 +1989,7 @@ EOF
 ## Self-review (skill checklist)
 
 **Spec coverage:**
+
 - Routes (gate outside, layout inside, sibling branch) → Task 13.
 - `lib/adminToken.ts` (store + subscribers + storage event + rejectedAt) → Task 2.
 - `lib/useAdminToken.ts` (hook only) → Task 3.

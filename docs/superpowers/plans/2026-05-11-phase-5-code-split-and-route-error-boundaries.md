@@ -91,25 +91,25 @@ No `package.json` changes. No new dev deps.
   Create `frontend/src/test/RouteErrorElement.test.tsx`:
 
   ```tsx
-  import { type ReactNode } from "react";
-  import { describe, expect, it, vi, beforeEach } from "vitest";
-  import { render, screen } from "@testing-library/react";
-  import { MantineProvider } from "@mantine/core";
-  import { createMemoryRouter, RouterProvider } from "react-router";
-  import { RouteErrorElement } from "../components/RouteErrorElement";
+  import { type ReactNode } from 'react';
+  import { describe, expect, it, vi, beforeEach } from 'vitest';
+  import { render, screen } from '@testing-library/react';
+  import { MantineProvider } from '@mantine/core';
+  import { createMemoryRouter, RouterProvider } from 'react-router';
+  import { RouteErrorElement } from '../components/RouteErrorElement';
 
   function Boom(): never {
-    throw new Error("boom");
+    throw new Error('boom');
   }
 
   function ThrowString(): never {
-    throw "oops" as unknown as Error;
+    throw 'oops' as unknown as Error;
   }
 
   function renderRoute(element: ReactNode) {
     const router = createMemoryRouter(
-      [{ path: "/", element, errorElement: <RouteErrorElement /> }],
-      { initialEntries: ["/"] },
+      [{ path: '/', element, errorElement: <RouteErrorElement /> }],
+      { initialEntries: ['/'] },
     );
     return render(
       <MantineProvider>
@@ -118,27 +118,23 @@ No `package.json` changes. No new dev deps.
     );
   }
 
-  describe("RouteErrorElement", () => {
+  describe('RouteErrorElement', () => {
     beforeEach(() => {
       // The test deliberately renders throwing components; suppress React's
       // noisy console.error output so the test log stays readable.
-      vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
-    it("renders the ErrorState title, error message, and a Retry button when an Error is thrown", () => {
+    it('renders the ErrorState title, error message, and a Retry button when an Error is thrown', () => {
       renderRoute(<Boom />);
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "Something went wrong",
-      );
-      expect(screen.getByText("boom")).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: /retry/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong');
+      expect(screen.getByText('boom')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     });
 
     it('falls back to "Unexpected error" when a non-Error value is thrown', () => {
       renderRoute(<ThrowString />);
-      expect(screen.getByText("Unexpected error")).toBeInTheDocument();
+      expect(screen.getByText('Unexpected error')).toBeInTheDocument();
     });
   });
   ```
@@ -156,13 +152,13 @@ No `package.json` changes. No new dev deps.
   Create `frontend/src/components/RouteErrorElement.tsx`:
 
   ```tsx
-  import { useRouteError } from "react-router";
-  import { ErrorState } from "./ErrorState";
+  import { useRouteError } from 'react-router';
+  import { ErrorState } from './ErrorState';
 
   export function RouteErrorElement() {
     const error = useRouteError();
-    if (import.meta.env.DEV) console.error("Route error:", error);
-    const message = error instanceof Error ? error.message : "Unexpected error";
+    if (import.meta.env.DEV) console.error('Route error:', error);
+    const message = error instanceof Error ? error.message : 'Unexpected error';
     return (
       <ErrorState
         title="Something went wrong"
@@ -219,19 +215,19 @@ This task adds the error boundaries only — admin pages stay eager-loaded. Spli
   Overwrite `frontend/src/routes.tsx` with:
 
   ```tsx
-  import { createBrowserRouter, Navigate, Outlet } from "react-router";
-  import { Layout } from "./components/Layout";
-  import { AdminGate } from "./components/AdminGate";
-  import { AdminLayout } from "./components/AdminLayout";
-  import { RouteErrorElement } from "./components/RouteErrorElement";
-  import { CatalogPage } from "./features/catalog/CatalogPage";
-  import { SlotPickerPage } from "./features/slot-picker/SlotPickerPage";
-  import { ConfirmPage } from "./features/booking/ConfirmPage";
-  import { SuccessPage } from "./features/booking/SuccessPage";
-  import { SettingsPage } from "./features/admin/SettingsPage";
-  import { EventTypesPage } from "./features/admin/EventTypesPage";
-  import { BookingsPage } from "./features/admin/BookingsPage";
-  import { NotFoundPage } from "./features/NotFoundPage";
+  import { createBrowserRouter, Navigate, Outlet } from 'react-router';
+  import { Layout } from './components/Layout';
+  import { AdminGate } from './components/AdminGate';
+  import { AdminLayout } from './components/AdminLayout';
+  import { RouteErrorElement } from './components/RouteErrorElement';
+  import { CatalogPage } from './features/catalog/CatalogPage';
+  import { SlotPickerPage } from './features/slot-picker/SlotPickerPage';
+  import { ConfirmPage } from './features/booking/ConfirmPage';
+  import { SuccessPage } from './features/booking/SuccessPage';
+  import { SettingsPage } from './features/admin/SettingsPage';
+  import { EventTypesPage } from './features/admin/EventTypesPage';
+  import { BookingsPage } from './features/admin/BookingsPage';
+  import { NotFoundPage } from './features/NotFoundPage';
 
   export const router = createBrowserRouter([
     {
@@ -242,16 +238,16 @@ This task adds the error boundaries only — admin pages stay eager-loaded. Spli
           element: <Outlet />,
           errorElement: <RouteErrorElement />,
           children: [
-            { path: "/", element: <CatalogPage /> },
-            { path: "/events/:slug", element: <SlotPickerPage /> },
-            { path: "/events/:slug/confirm", element: <ConfirmPage /> },
-            { path: "/events/:slug/booked/:id", element: <SuccessPage /> },
+            { path: '/', element: <CatalogPage /> },
+            { path: '/events/:slug', element: <SlotPickerPage /> },
+            { path: '/events/:slug/confirm', element: <ConfirmPage /> },
+            { path: '/events/:slug/booked/:id', element: <SuccessPage /> },
           ],
         },
       ],
     },
     {
-      path: "/admin",
+      path: '/admin',
       element: <AdminGate />,
       children: [
         {
@@ -263,16 +259,16 @@ This task adds the error boundaries only — admin pages stay eager-loaded. Spli
               errorElement: <RouteErrorElement />,
               children: [
                 { index: true, element: <Navigate to="settings" replace /> },
-                { path: "settings", element: <SettingsPage /> },
-                { path: "event-types", element: <EventTypesPage /> },
-                { path: "bookings", element: <BookingsPage /> },
+                { path: 'settings', element: <SettingsPage /> },
+                { path: 'event-types', element: <EventTypesPage /> },
+                { path: 'bookings', element: <BookingsPage /> },
               ],
             },
           ],
         },
       ],
     },
-    { path: "*", element: <NotFoundPage /> },
+    { path: '*', element: <NotFoundPage /> },
   ]);
   ```
 
@@ -349,53 +345,45 @@ This task adds the error boundaries only — admin pages stay eager-loaded. Spli
   At the top of `frontend/src/routes.tsx`, change:
 
   ```tsx
-  import { createBrowserRouter, Navigate, Outlet } from "react-router";
-  import { Layout } from "./components/Layout";
-  import { AdminGate } from "./components/AdminGate";
-  import { AdminLayout } from "./components/AdminLayout";
-  import { RouteErrorElement } from "./components/RouteErrorElement";
-  import { CatalogPage } from "./features/catalog/CatalogPage";
-  import { SlotPickerPage } from "./features/slot-picker/SlotPickerPage";
-  import { ConfirmPage } from "./features/booking/ConfirmPage";
-  import { SuccessPage } from "./features/booking/SuccessPage";
-  import { SettingsPage } from "./features/admin/SettingsPage";
-  import { EventTypesPage } from "./features/admin/EventTypesPage";
-  import { BookingsPage } from "./features/admin/BookingsPage";
-  import { NotFoundPage } from "./features/NotFoundPage";
+  import { createBrowserRouter, Navigate, Outlet } from 'react-router';
+  import { Layout } from './components/Layout';
+  import { AdminGate } from './components/AdminGate';
+  import { AdminLayout } from './components/AdminLayout';
+  import { RouteErrorElement } from './components/RouteErrorElement';
+  import { CatalogPage } from './features/catalog/CatalogPage';
+  import { SlotPickerPage } from './features/slot-picker/SlotPickerPage';
+  import { ConfirmPage } from './features/booking/ConfirmPage';
+  import { SuccessPage } from './features/booking/SuccessPage';
+  import { SettingsPage } from './features/admin/SettingsPage';
+  import { EventTypesPage } from './features/admin/EventTypesPage';
+  import { BookingsPage } from './features/admin/BookingsPage';
+  import { NotFoundPage } from './features/NotFoundPage';
   ```
 
   to:
 
   ```tsx
-  import { type ComponentType, lazy } from "react";
-  import { createBrowserRouter, Navigate, Outlet } from "react-router";
-  import { Layout } from "./components/Layout";
-  import { AdminGate } from "./components/AdminGate";
-  import { AdminLayout } from "./components/AdminLayout";
-  import { RouteErrorElement } from "./components/RouteErrorElement";
-  import { CatalogPage } from "./features/catalog/CatalogPage";
-  import { SlotPickerPage } from "./features/slot-picker/SlotPickerPage";
-  import { ConfirmPage } from "./features/booking/ConfirmPage";
-  import { SuccessPage } from "./features/booking/SuccessPage";
-  import { NotFoundPage } from "./features/NotFoundPage";
+  import { type ComponentType, lazy } from 'react';
+  import { createBrowserRouter, Navigate, Outlet } from 'react-router';
+  import { Layout } from './components/Layout';
+  import { AdminGate } from './components/AdminGate';
+  import { AdminLayout } from './components/AdminLayout';
+  import { RouteErrorElement } from './components/RouteErrorElement';
+  import { CatalogPage } from './features/catalog/CatalogPage';
+  import { SlotPickerPage } from './features/slot-picker/SlotPickerPage';
+  import { ConfirmPage } from './features/booking/ConfirmPage';
+  import { SuccessPage } from './features/booking/SuccessPage';
+  import { NotFoundPage } from './features/NotFoundPage';
 
-  const lazyNamed = <K extends string>(
-    loader: () => Promise<Record<K, ComponentType>>,
-    name: K,
-  ) => lazy(() => loader().then((m) => ({ default: m[name] })));
+  const lazyNamed = <K extends string>(loader: () => Promise<Record<K, ComponentType>>, name: K) =>
+    lazy(() => loader().then((m) => ({ default: m[name] })));
 
-  const SettingsPage = lazyNamed(
-    () => import("./features/admin/SettingsPage"),
-    "SettingsPage",
-  );
+  const SettingsPage = lazyNamed(() => import('./features/admin/SettingsPage'), 'SettingsPage');
   const EventTypesPage = lazyNamed(
-    () => import("./features/admin/EventTypesPage"),
-    "EventTypesPage",
+    () => import('./features/admin/EventTypesPage'),
+    'EventTypesPage',
   );
-  const BookingsPage = lazyNamed(
-    () => import("./features/admin/BookingsPage"),
-    "BookingsPage",
-  );
+  const BookingsPage = lazyNamed(() => import('./features/admin/BookingsPage'), 'BookingsPage');
   ```
 
   Note: the 3 eager admin imports are removed; the rest of `routes.tsx` (the `createBrowserRouter` call and pass-through structure) is unchanged.
@@ -407,24 +395,16 @@ This task adds the error boundaries only — admin pages stay eager-loaded. Spli
   Change the imports at the top (currently lines 1-2):
 
   ```tsx
-  import { AppShell, Button, Container, Group, Text } from "@mantine/core";
-  import { Link, NavLink, Outlet, useNavigate } from "react-router";
+  import { AppShell, Button, Container, Group, Text } from '@mantine/core';
+  import { Link, NavLink, Outlet, useNavigate } from 'react-router';
   ```
 
   to:
 
   ```tsx
-  import { Suspense } from "react";
-  import {
-    AppShell,
-    Button,
-    Container,
-    Group,
-    Loader,
-    Stack,
-    Text,
-  } from "@mantine/core";
-  import { Link, NavLink, Outlet, useNavigate } from "react-router";
+  import { Suspense } from 'react';
+  import { AppShell, Button, Container, Group, Loader, Stack, Text } from '@mantine/core';
+  import { Link, NavLink, Outlet, useNavigate } from 'react-router';
   ```
 
   Then wrap the `<Outlet />` (currently line 41 inside `<Container size="lg">`). Change:
