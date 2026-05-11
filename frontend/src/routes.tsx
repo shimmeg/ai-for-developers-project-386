@@ -1,3 +1,4 @@
+import { type ComponentType, lazy } from 'react';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { Layout } from './components/Layout';
 import { AdminGate } from './components/AdminGate';
@@ -7,10 +8,25 @@ import { CatalogPage } from './features/catalog/CatalogPage';
 import { SlotPickerPage } from './features/slot-picker/SlotPickerPage';
 import { ConfirmPage } from './features/booking/ConfirmPage';
 import { SuccessPage } from './features/booking/SuccessPage';
-import { SettingsPage } from './features/admin/SettingsPage';
-import { EventTypesPage } from './features/admin/EventTypesPage';
-import { BookingsPage } from './features/admin/BookingsPage';
 import { NotFoundPage } from './features/NotFoundPage';
+
+const lazyNamed = <K extends string>(
+  loader: () => Promise<Record<K, ComponentType>>,
+  name: K,
+) => lazy(() => loader().then((m) => ({ default: m[name] })));
+
+const SettingsPage = lazyNamed(
+  () => import('./features/admin/SettingsPage'),
+  'SettingsPage',
+);
+const EventTypesPage = lazyNamed(
+  () => import('./features/admin/EventTypesPage'),
+  'EventTypesPage',
+);
+const BookingsPage = lazyNamed(
+  () => import('./features/admin/BookingsPage'),
+  'BookingsPage',
+);
 
 export const router = createBrowserRouter([
   {

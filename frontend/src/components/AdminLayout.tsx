@@ -1,4 +1,5 @@
-import { AppShell, Button, Container, Group, Text } from '@mantine/core';
+import { Suspense } from 'react';
+import { AppShell, Button, Container, Group, Loader, Stack, Text } from '@mantine/core';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { clearAdminToken } from '../lib/adminToken';
 
@@ -38,7 +39,15 @@ export function AdminLayout() {
       </AppShell.Header>
       <AppShell.Main>
         <Container size="lg">
-          <Outlet />
+          <Suspense
+            fallback={
+              <Stack align="center" mt="xl">
+                <Loader />
+              </Stack>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </Container>
       </AppShell.Main>
     </AppShell>
