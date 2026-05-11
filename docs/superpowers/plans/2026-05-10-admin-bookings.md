@@ -40,7 +40,7 @@ So Prism in static mode returns realistic mock data on `GET /admin/bookings`. Wi
 
 **Files:** modify [`contract/admin.tsp`](../../../contract/admin.tsp) (the `AdminBookings` interface).
 
-- [ ] Add `@opExample` to `list` returning 4 bookings spanning the same `intro-call` / `deep-dive` / `office-hours` slugs Phases 1 and 3 already seed, with mixed start times (so the sort-by-startTime ordering is observable), mixed durations (15 / 30 / 60 / 60), one booking _without_ `guestNotes` (exercises the optional-field path), and one with notes longer than 80 chars (exercises the truncate + tooltip path).
+- [ ] Add `@opExample` to `list` returning 4 bookings spanning the same `intro-call` / `deep-dive` / `office-hours` slugs Phases 1 and 3 already seed, with mixed start times (so the sort-by-startTime ordering is observable), mixed durations (15 / 30 / 60 / 60), one booking *without* `guestNotes` (exercises the optional-field path), and one with notes longer than 80 chars (exercises the truncate + tooltip path).
 - [ ] Add `@opExample` to `cancel` returning a 204 with no body.
 - [ ] Verify: `cd contract && npm test` (existing `openapi-contract.test.mjs` should still pass).
 - [ ] Verify against Prism:
@@ -63,27 +63,19 @@ Mirror [`eventTypesAdmin.ts`](../../../frontend/src/api/queries/eventTypesAdmin.
 - [ ] **Test first.** Hook tests (mock `adminClient.GET` + `adminClient.DELETE`). Cases:
   1. `useAdminBookings` returns the list when GET succeeds.
   2. `useAdminBookings` throws `HttpError` and does not retry on a 401.
-  3. `useCancelBooking` removes the row optimistically before the DELETE resolves _(use a deferred promise so the optimistic state is observable)_.
+  3. `useCancelBooking` removes the row optimistically before the DELETE resolves *(use a deferred promise so the optimistic state is observable)*.
   4. `useCancelBooking` rolls the row back when the DELETE returns 500.
   5. `useCancelBooking` invalidates `bookingsAdminKeys.all` on success.
 - [ ] **Implement.** Module exports:
-
   ```ts
-  export type Booking = components["schemas"]["Booking"];
-  export const bookingsAdminKeys = { all: ["admin", "bookings"] as const };
+  export type Booking = components['schemas']['Booking'];
+  export const bookingsAdminKeys = { all: ['admin', 'bookings'] as const };
   export function useAdminBookings(): UseQueryResult<Booking[], HttpError>;
-  export function useCancelBooking(): UseMutationResult<
-    void,
-    HttpError,
-    { id: string },
-    { previous?: Booking[] }
-  >;
+  export function useCancelBooking(): UseMutationResult<void, HttpError, { id: string }, { previous?: Booking[] }>;
   ```
-
   - Inline `isHttp4xx` (same as the other hook files).
   - `useAdminBookings`: `adminClient.GET('/admin/bookings')`, throw via `toHttpError(res.error, res.response)`, return `res.data`.
   - `useCancelBooking`: `mutationFn` calls `DELETE /admin/bookings/{id}` and resolves to `void` on 204; `onMutate` snapshots `previous` and filters the row out; `onError` restores; `onSettled` invalidates; `retry: false`.
-
 - [ ] Tests pass.
 - [ ] Commit: `Add admin bookings query + cancel mutation hooks`.
 
@@ -135,7 +127,6 @@ The list page. Mirrors [`EventTypesPage.tsx`](../../../frontend/src/features/adm
   7. 500 cancel: row reappears (rollback), modal closes (toast carries the feedback).
   8. 404 cancel: treated as a benign race — gray "Already cancelled" toast, modal closes.
 - [ ] **Implement.** State machine:
-
   ```tsx
   const listQ = useAdminBookings();
   const settingsQ = useAdminSettings();
@@ -147,9 +138,7 @@ The list page. Mirrors [`EventTypesPage.tsx`](../../../frontend/src/features/adm
 
   const timezone = settingsQ.data?.timezone ?? 'UTC';   // defensive fallback
   ```
-
-  Table columns (in order): **When** (`formatFullHuman(startTime, timezone)`), **Event type** (`eventTypeName`), **Duration** (`{durationMinutesSnapshot} min`), **Guest** (name over email in a `Stack gap={0}`), **Notes** (truncated preview wrapped in a Mantine `Tooltip` with `disabled={!truncated}` + `events={{ hover, focus, touch }}`; `aria-label={fullNotes}` on the focusable Text; em-dash for empty), and an action cell with a `<Button color="red" variant="subtle" size="xs" aria-label={\`Cancel ${eventTypeName} with ${guestName} on ${formattedStart}\`}>Cancel</Button>`per row. Empty state: a`Card withBorder p="xl"`with a Title + dimmed line + Mantine Button as`react-router`Link. Notes truncation helper: a one-line`truncate(text, n)`with`trimEnd()` before the ellipsis.
-
+  Table columns (in order): **When** (`formatFullHuman(startTime, timezone)`), **Event type** (`eventTypeName`), **Duration** (`{durationMinutesSnapshot} min`), **Guest** (name over email in a `Stack gap={0}`), **Notes** (truncated preview wrapped in a Mantine `Tooltip` with `disabled={!truncated}` + `events={{ hover, focus, touch }}`; `aria-label={fullNotes}` on the focusable Text; em-dash for empty), and an action cell with a `<Button color="red" variant="subtle" size="xs" aria-label={\`Cancel ${eventTypeName} with ${guestName} on ${formattedStart}\`}>Cancel</Button>` per row. Empty state: a `Card withBorder p="xl"` with a Title + dimmed line + Mantine Button as `react-router` Link. Notes truncation helper: a one-line `truncate(text, n)` with `trimEnd()` before the ellipsis.
 - [ ] Tests pass.
 - [ ] Commit: `Add BookingsPage`.
 

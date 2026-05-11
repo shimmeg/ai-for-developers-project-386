@@ -41,7 +41,6 @@ frontend/src/
 So Prism returns realistic mock data on the four `AdminEventTypes` operations. Without it, the list page has nothing to render against the mock.
 
 **Files:**
-
 - Modify: `contract/admin.tsp`
 
 - [ ] **Step 1: Add `@opExample` decorators**
@@ -202,7 +201,6 @@ EOF
 Pure module: form schema mirroring the contract, plus a small `diffEventType()` that computes the PATCH body for edit mode.
 
 **Files:**
-
 - Create: `frontend/src/features/admin/event-type-schema.ts`
 - Test: `frontend/src/test/event-type-schema.test.ts`
 
@@ -211,41 +209,31 @@ Pure module: form schema mirroring the contract, plus a small `diffEventType()` 
 Create `frontend/src/test/event-type-schema.test.ts`:
 
 ```typescript
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   EventTypeFormSchema,
   diffEventType,
-} from "../features/admin/event-type-schema";
+} from '../features/admin/event-type-schema';
 
 const ok = {
-  slug: "intro-call",
-  name: "Intro call",
-  description: "A 30-minute chat.",
+  slug: 'intro-call',
+  name: 'Intro call',
+  description: 'A 30-minute chat.',
   durationMinutes: 30,
 };
 
-describe("EventTypeFormSchema", () => {
-  it("accepts a canonical example", () => {
+describe('EventTypeFormSchema', () => {
+  it('accepts a canonical example', () => {
     expect(EventTypeFormSchema.safeParse(ok).success).toBe(true);
   });
 
-  it("rejects empty / spaced / uppercase slugs", () => {
-    for (const slug of [
-      "",
-      "Intro Call",
-      "INTRO",
-      "intro_call",
-      "intro--call",
-      "-intro",
-      "intro-",
-    ]) {
-      expect(EventTypeFormSchema.safeParse({ ...ok, slug }).success).toBe(
-        false,
-      );
+  it('rejects empty / spaced / uppercase slugs', () => {
+    for (const slug of ['', 'Intro Call', 'INTRO', 'intro_call', 'intro--call', '-intro', 'intro-']) {
+      expect(EventTypeFormSchema.safeParse({ ...ok, slug }).success).toBe(false);
     }
   });
 
-  it("rejects 0 / negative / non-integer / >24h duration", () => {
+  it('rejects 0 / negative / non-integer / >24h duration', () => {
     for (const d of [0, -1, 1.5, 60 * 24 + 1]) {
       expect(
         EventTypeFormSchema.safeParse({ ...ok, durationMinutes: d }).success,
@@ -253,31 +241,25 @@ describe("EventTypeFormSchema", () => {
     }
   });
 
-  it("rejects empty name / empty description", () => {
-    expect(EventTypeFormSchema.safeParse({ ...ok, name: "" }).success).toBe(
-      false,
-    );
-    expect(EventTypeFormSchema.safeParse({ ...ok, name: "   " }).success).toBe(
-      false,
-    );
-    expect(
-      EventTypeFormSchema.safeParse({ ...ok, description: "" }).success,
-    ).toBe(false);
+  it('rejects empty name / empty description', () => {
+    expect(EventTypeFormSchema.safeParse({ ...ok, name: '' }).success).toBe(false);
+    expect(EventTypeFormSchema.safeParse({ ...ok, name: '   ' }).success).toBe(false);
+    expect(EventTypeFormSchema.safeParse({ ...ok, description: '' }).success).toBe(false);
   });
 });
 
-describe("diffEventType", () => {
-  it("returns an empty object when nothing changed", () => {
+describe('diffEventType', () => {
+  it('returns an empty object when nothing changed', () => {
     expect(diffEventType(ok, ok)).toEqual({});
   });
 
-  it("includes only the changed fields", () => {
-    expect(diffEventType(ok, { ...ok, name: "New name" })).toEqual({
-      name: "New name",
+  it('includes only the changed fields', () => {
+    expect(diffEventType(ok, { ...ok, name: 'New name' })).toEqual({
+      name: 'New name',
     });
     expect(
-      diffEventType(ok, { ...ok, slug: "intro", durationMinutes: 45 }),
-    ).toEqual({ slug: "intro", durationMinutes: 45 });
+      diffEventType(ok, { ...ok, slug: 'intro', durationMinutes: 45 }),
+    ).toEqual({ slug: 'intro', durationMinutes: 45 });
   });
 });
 ```
@@ -292,43 +274,35 @@ Expected: tests fail with "module not found".
 Create `frontend/src/features/admin/event-type-schema.ts`:
 
 ```typescript
-import { z } from "zod";
-import type { components } from "../../api/types";
+import { z } from 'zod';
+import type { components } from '../../api/types';
 
 const Slug = z
   .string()
-  .min(1, "Slug is required")
+  .min(1, 'Slug is required')
   .max(64)
-  .regex(
-    /^[a-z0-9]+(-[a-z0-9]+)*$/,
-    "Lowercase letters, digits, and hyphens only",
-  );
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Lowercase letters, digits, and hyphens only');
 
 export const EventTypeFormSchema = z.object({
   slug: Slug,
-  name: z.string().trim().min(1, "Name is required").max(120),
-  description: z.string().trim().min(1, "Description is required").max(2000),
+  name: z.string().trim().min(1, 'Name is required').max(120),
+  description: z.string().trim().min(1, 'Description is required').max(2000),
   durationMinutes: z
     .number()
-    .int("Use whole minutes")
-    .min(1, "Must be at least 1 minute")
-    .max(60 * 24, "Must be 24 hours or less"),
+    .int('Use whole minutes')
+    .min(1, 'Must be at least 1 minute')
+    .max(60 * 24, 'Must be 24 hours or less'),
 });
 
 export type EventTypeFormValues = z.infer<typeof EventTypeFormSchema>;
 
-const FIELDS: (keyof EventTypeFormValues)[] = [
-  "slug",
-  "name",
-  "description",
-  "durationMinutes",
-];
+const FIELDS: (keyof EventTypeFormValues)[] = ['slug', 'name', 'description', 'durationMinutes'];
 
 export function diffEventType(
   before: EventTypeFormValues,
   after: EventTypeFormValues,
-): components["schemas"]["EventTypeUpdate"] {
-  const out: components["schemas"]["EventTypeUpdate"] = {};
+): components['schemas']['EventTypeUpdate'] {
+  const out: components['schemas']['EventTypeUpdate'] = {};
   for (const k of FIELDS) {
     if (before[k] !== after[k]) {
       // Narrow `out` index by `k` — TS struggles to follow this in a loop, so
@@ -368,7 +342,6 @@ EOF
 Three hooks wrapping `adminClient`, all throwing `HttpError` on non-2xx and disabling retries on 4xx. Same shape as `useAdminSettings`/`useUpdateAdminSettings` from Phase 2.
 
 **Files:**
-
 - Create: `frontend/src/api/queries/eventTypesAdmin.ts`
 - Test: `frontend/src/test/eventTypesAdmin.test.ts`
 
@@ -500,17 +473,17 @@ Expected: tests fail with "module not found".
 Create `frontend/src/api/queries/eventTypesAdmin.ts`:
 
 ```typescript
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { adminClient } from "../adminClient";
-import type { components } from "../types";
-import { HttpError } from "../../lib/httpError";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { adminClient } from '../adminClient';
+import type { components } from '../types';
+import { HttpError } from '../../lib/httpError';
 
-export type EventType = components["schemas"]["EventType"];
-export type EventTypeCreate = components["schemas"]["EventTypeCreate"];
-export type EventTypeUpdate = components["schemas"]["EventTypeUpdate"];
+export type EventType = components['schemas']['EventType'];
+export type EventTypeCreate = components['schemas']['EventTypeCreate'];
+export type EventTypeUpdate = components['schemas']['EventTypeUpdate'];
 
 export const eventTypesAdminKeys = {
-  all: ["admin", "event-types"] as const,
+  all: ['admin', 'event-types'] as const,
 };
 
 function isHttp4xx(err: unknown): boolean {
@@ -522,12 +495,12 @@ export function useAdminEventTypes() {
     queryKey: eventTypesAdminKeys.all,
     retry: (count, err) => (isHttp4xx(err) ? false : count < 1),
     queryFn: async (): Promise<EventType[]> => {
-      const res = await adminClient.GET("/admin/event-types");
+      const res = await adminClient.GET('/admin/event-types');
       if (res.error) {
         throw new HttpError(
           res.response.status,
-          res.error.code ?? "http_error",
-          res.error.message ?? "Request failed",
+          res.error.code ?? 'http_error',
+          res.error.message ?? 'Request failed',
         );
       }
       return res.data;
@@ -540,12 +513,12 @@ export function useCreateEventType() {
   return useMutation<EventType, HttpError, EventTypeCreate>({
     retry: (count, err) => (isHttp4xx(err) ? false : count < 1),
     mutationFn: async (body) => {
-      const res = await adminClient.POST("/admin/event-types", { body });
+      const res = await adminClient.POST('/admin/event-types', { body });
       if (res.error) {
         throw new HttpError(
           res.response.status,
-          res.error.code ?? "http_error",
-          res.error.message ?? "Create failed",
+          res.error.code ?? 'http_error',
+          res.error.message ?? 'Create failed',
         );
       }
       return res.data;
@@ -565,15 +538,15 @@ export function useUpdateEventType() {
   >({
     retry: (count, err) => (isHttp4xx(err) ? false : count < 1),
     mutationFn: async ({ slug, body }) => {
-      const res = await adminClient.PATCH("/admin/event-types/{slug}", {
+      const res = await adminClient.PATCH('/admin/event-types/{slug}', {
         params: { path: { slug } },
         body,
       });
       if (res.error) {
         throw new HttpError(
           res.response.status,
-          res.error.code ?? "http_error",
-          res.error.message ?? "Update failed",
+          res.error.code ?? 'http_error',
+          res.error.message ?? 'Update failed',
         );
       }
       return res.data;
@@ -614,7 +587,6 @@ EOF
 Single component used for both Create and Edit. Mode is implied by props.
 
 **Files:**
-
 - Create: `frontend/src/features/admin/EventTypeFormModal.tsx`
 - Test: `frontend/src/test/EventTypeFormModal.test.tsx`
 
@@ -973,7 +945,6 @@ EOF
 The list page: table with active toggle (optimistic + rollback), edit button per row, header create button, empty state.
 
 **Files:**
-
 - Create: `frontend/src/features/admin/EventTypesPage.tsx`
 - Test: `frontend/src/test/EventTypesPage.test.tsx`
 
@@ -1340,7 +1311,6 @@ EOF
 Add the nav link to `<AdminLayout>` and the child route to `routes.tsx`.
 
 **Files:**
-
 - Modify: `frontend/src/components/AdminLayout.tsx`
 - Modify: `frontend/src/routes.tsx`
 
@@ -1385,7 +1355,7 @@ Replace with:
 Add the import at the top with the other feature imports:
 
 ```tsx
-import { EventTypesPage } from "./features/admin/EventTypesPage";
+import { EventTypesPage } from './features/admin/EventTypesPage';
 ```
 
 - [ ] **Step 3: Run the gates**
@@ -1393,7 +1363,6 @@ import { EventTypesPage } from "./features/admin/EventTypesPage";
 ```bash
 npm run typecheck && npm run lint && npm test && npm run build
 ```
-
 Expected: all green.
 
 - [ ] **Step 4: Commit**
@@ -1422,7 +1391,6 @@ From `frontend/`:
 ```bash
 npm run typecheck && npm run lint && npm test && npm run build
 ```
-
 Expected: all green; new tests in the count.
 
 - [ ] **Step 2: Walk the flow against Prism**
@@ -1479,7 +1447,6 @@ EOF
 ## Self-review (skill checklist)
 
 **Spec coverage:**
-
 - Routes (sibling to /admin/settings, no /:slug routes): Task 6.
 - File layout (eventTypesAdmin.ts, event-type-schema.ts, EventTypeFormModal.tsx, EventTypesPage.tsx): Tasks 2, 3, 4, 5.
 - AdminLayout nav addition: Task 6.
@@ -1496,7 +1463,6 @@ EOF
 **Placeholder scan:** No "TBD" / "implement later". Each task has full code blocks.
 
 **Type consistency:**
-
 - `EventTypeFormValues` defined in Task 2, imported by Task 4.
 - `diffEventType(before, after)` signature consistent: Task 2 schema test + Task 4 use.
 - `EventType` / `EventTypeCreate` / `EventTypeUpdate` types consistent across Tasks 3, 4, 5.

@@ -34,10 +34,10 @@ Admin event-types and bookings are deliberately deferred to Phases 3 and 4 ([fro
 
 ### Routes
 
-| Path              | Component                                   | Notes                                                                                        |
-| ----------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `/admin`          | `<Navigate to="/admin/settings" replace />` | Phase 2 has only one admin page; the redirect keeps `/admin` always-meaningful as more land. |
-| `/admin/settings` | `<SettingsPage />`                          | Sole admin route in this phase.                                                              |
+| Path | Component | Notes |
+|---|---|---|
+| `/admin` | `<Navigate to="/admin/settings" replace />` | Phase 2 has only one admin page; the redirect keeps `/admin` always-meaningful as more land. |
+| `/admin/settings` | `<SettingsPage />` | Sole admin route in this phase. |
 
 The admin subtree is wrapped by `<AdminGate>` (auth, outermost) → `<AdminLayout>` (chrome) → `<Outlet />`. Putting the gate outermost means the admin chrome is never visible behind the unauthenticated modal: when no token is stored, the user sees a centered token-entry screen, not the admin shell with an overlay.
 
@@ -45,26 +45,14 @@ The admin subtree is wrapped by `<AdminGate>` (auth, outermost) → `<AdminLayou
 
 ```tsx
 createBrowserRouter([
-  {
-    element: <Layout />,
-    children: [
-      /* guest routes */
-    ],
-  },
-  {
-    path: "/admin",
-    element: <AdminGate />,
-    children: [
-      {
-        element: <AdminLayout />,
-        children: [
-          { index: true, element: <Navigate to="settings" replace /> },
-          { path: "settings", element: <SettingsPage /> },
-        ],
-      },
-    ],
-  },
-  { path: "*", element: <NotFoundPage /> },
+  { element: <Layout />, children: [/* guest routes */] },
+  { path: '/admin', element: <AdminGate />, children: [
+    { element: <AdminLayout />, children: [
+      { index: true, element: <Navigate to="settings" replace /> },
+      { path: 'settings', element: <SettingsPage /> },
+    ]},
+  ]},
+  { path: '*', element: <NotFoundPage /> },
 ]);
 ```
 
@@ -97,16 +85,13 @@ The existing `<NotFoundPage />` already covers the `*` catch-all, so we do not d
 ### `lib/adminToken.ts`
 
 Pure module backed by `localStorage`. Two storage keys:
-
 - `calendar.adminToken` — the token string itself (or absent when signed out).
 - `calendar.adminTokenRejectedAt` — a millisecond timestamp written when the token is cleared with `reason: 'rejected'`, omitted otherwise. Persisting this flag is what makes the "your token was rejected" hint reliable across tabs (Codex finding 7): the storage event in another tab can read this key as well as the token key.
 
 ```ts
 export function getAdminToken(): string | null;
-export function setAdminToken(token: string): void; // also clears rejectedAt
-export function clearAdminToken(opts?: {
-  reason?: "rejected" | "signed-out";
-}): void;
+export function setAdminToken(token: string): void;          // also clears rejectedAt
+export function clearAdminToken(opts?: { reason?: 'rejected' | 'signed-out' }): void;
 export function getRejectedAt(): number | null;
 ```
 
@@ -115,7 +100,7 @@ A module-level `subscribers: Set<() => void>` is notified on every `set`/`clear`
 ### `lib/useAdminToken.ts`
 
 ```ts
-export function useAdminToken(): string | null;
+export function useAdminToken(): string | null
 ```
 
 Implemented with `useSyncExternalStore(subscribe, getAdminToken, () => null)`. **Hook callers only** — React components (`<AdminGate>`, the modal, the sign-out button). Non-React contexts (the `adminClient` middleware, the modal's raw-fetch validation) call `getAdminToken()` directly: hooks cannot run inside fetch middleware. The pure store + hook split is exactly to make both kinds of access possible without duplicated state.
@@ -137,14 +122,13 @@ That's the entire gate. The modal is the only thing rendered when no token is pr
 ### `<AdminTokenModal />`
 
 Mantine `Modal`:
-
 - `opened={true}` permanently while rendered (the gate decides whether to render it at all)
 - `withCloseButton={false}`, `closeOnEscape={false}`, `closeOnClickOutside={false}` — admin must enter a token or navigate away
 - A small "Back to public catalog" link in the modal body navigates to `/`
 
 Form: a single `PasswordInput` labelled "Admin token", required, plus a `Sign in` submit button.
 
-On submit, the modal validates the candidate token _before_ writing it to storage, so the gate doesn't flip mid-validation:
+On submit, the modal validates the candidate token *before* writing it to storage, so the gate doesn't flip mid-validation:
 
 1. **Lock submissions while in flight.** The submit handler tracks a local `submitting` boolean; the button is disabled and additional Enter-key submits are no-ops while `submitting` is true. Combined with React's batching this guarantees only one validation request can be active at a time, eliminating the out-of-order-resolve race (Codex finding 4).
 2. Call `GET /admin/settings` directly (raw `fetch` against `${env.apiBaseUrl}/admin/settings`, with `X-Admin-Token: <candidate>` in the headers). Bypassing the configured `adminClient` for this one call is what avoids the race — the candidate token never goes through the middleware.
@@ -168,7 +152,7 @@ adminClient.use({
   async onRequest({ request }) {
     const token = getAdminToken();
     if (token) {
-      request.headers.set("X-Admin-Token", token);
+      request.headers.set('X-Admin-Token', token);
       // Stash the token used so onResponse can compare on 401.
       (request as Request & { __sentToken?: string }).__sentToken = token;
     }
@@ -181,7 +165,7 @@ adminClient.use({
       // Only clear if the 401 was for the *currently stored* token.
       // Otherwise this is a stale in-flight response from a token the user
       // already replaced — ignoring it preserves the new valid token.
-      if (sent && sent === current) clearAdminToken({ reason: "rejected" });
+      if (sent && sent === current) clearAdminToken({ reason: 'rejected' });
     }
     return response;
   },
@@ -191,7 +175,6 @@ adminClient.use({
 The `sent === current` guard fixes Codex finding 2 (late 401 stomping on a newly valid token). Stale 401s are dropped on the floor; the new token's own queries succeed normally.
 
 Two reasons for keeping `adminClient` separate from `apiClient`:
-
 1. Guest pages can't accidentally send the admin header.
 2. The 401-handling middleware is admin-only — guest pages have their own error flows.
 
@@ -218,12 +201,10 @@ useQuery({
 
 ```ts
 export const settingsKeys = {
-  all: ["admin", "settings"] as const,
+  all: ['admin', 'settings'] as const,
 };
 
-export function useAdminSettings() {
-  /* GET /admin/settings */
-}
+export function useAdminSettings() { /* GET /admin/settings */ }
 export function useUpdateAdminSettings() {
   // PUT /admin/settings, invalidates settingsKeys.all on success
 }
@@ -237,7 +218,7 @@ Mantine `AppShell` mirroring the guest `Layout`, with admin-specific chrome:
 
 - **Header brand:** "Calendar (admin)" — visually distinct so the owner knows which surface they're on.
 - **Header nav:** in Phase 2, only a single `Settings` link. Event types / Bookings nav links are deliberately omitted — they'd route to unfinished pages and confuse the user (Codex finding 10). Phases 3 and 4 will add them.
-- **Header actions:** small "Sign out" text button (right-aligned). On click: `clearAdminToken({ reason: 'signed-out' })` → `navigate('/')`. The `'signed-out'` reason ensures `rejectedAt` is _not_ set — re-entry won't show the rejection message.
+- **Header actions:** small "Sign out" text button (right-aligned). On click: `clearAdminToken({ reason: 'signed-out' })` → `navigate('/')`. The `'signed-out'` reason ensures `rejectedAt` is *not* set — re-entry won't show the rejection message.
 
 ## Settings page UX
 
@@ -272,29 +253,23 @@ Working hours
 ### Zod schema (`features/admin/settings-schema.ts`)
 
 ```ts
-const SUPPORTED_TIMEZONES = new Set<string>(Intl.supportedValuesOf("timeZone"));
+const SUPPORTED_TIMEZONES = new Set<string>(Intl.supportedValuesOf('timeZone'));
 
-const Hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "HH:MM");
+const Hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:MM');
 
-const ClosedDay = z.object({ status: z.literal("closed") }).strict();
+const ClosedDay = z.object({ status: z.literal('closed') }).strict();
 const OpenDay = z
-  .object({ status: z.literal("open"), start: Hhmm, end: Hhmm })
+  .object({ status: z.literal('open'), start: Hhmm, end: Hhmm })
   .strict()
-  .refine((d) => d.end > d.start, {
-    message: "End must be after start",
-    path: ["end"],
-  });
+  .refine((d) => d.end > d.start, { message: 'End must be after start', path: ['end'] });
 
-const WorkingDay = z.discriminatedUnion("status", [ClosedDay, OpenDay]);
+const WorkingDay = z.discriminatedUnion('status', [ClosedDay, OpenDay]);
 
 export const SettingsFormSchema = z.object({
   timezone: z
     .string()
-    .min(1, "Timezone is required")
-    .refine(
-      (v) => SUPPORTED_TIMEZONES.has(v),
-      "Pick a recognised IANA timezone",
-    ),
+    .min(1, 'Timezone is required')
+    .refine((v) => SUPPORTED_TIMEZONES.has(v), 'Pick a recognised IANA timezone'),
   workingHours: z.object({
     monday: WorkingDay,
     tuesday: WorkingDay,
@@ -310,7 +285,6 @@ export type SettingsFormValues = z.infer<typeof SettingsFormSchema>;
 ```
 
 Two changes vs. the v1 sketch (Codex findings 3 and 5):
-
 - `timezone` is validated against the runtime `Intl.supportedValuesOf('timeZone')` list, mirroring the contract's "valid IANA name" rule client-side.
 - Both `ClosedDay` and `OpenDay` are `.strict()`, so any `start`/`end` left over from a closed→open→closed toggle are caught by Zod (and stripped by the submit normalizer below) before they ever reach the wire.
 
@@ -358,18 +332,18 @@ Smoke tests in `frontend/src/test/` (Vitest + RTL, mocking the admin client at t
 
 1. **`AdminGate`:** modal is rendered when no token; outlet is rendered once a token is set.
 2. **Modal happy path:** submit → mocked 200 → modal closes, child renders, query cache seeded.
-3. **Modal rejects bad token:** submit → mocked 401 → token _not_ stored, inline error visible.
+3. **Modal rejects bad token:** submit → mocked 401 → token *not* stored, inline error visible.
 4. **Modal: persisted token on reload** — token in `localStorage` at mount → `<AdminGate>` skips the modal entirely.
 5. **Modal: duplicate-submit lock** — fast double-click of Sign in → only one fetch fires; second click is a no-op while the first is pending.
 6. **Settings page renders fetched data:** timezone + 7 rows match the mocked response.
-7. **Settings page submit:** dirty the form → click Save → mutation called with the _normalized_ payload (closed days lack `start`/`end`) → success notification.
+7. **Settings page submit:** dirty the form → click Save → mutation called with the *normalized* payload (closed days lack `start`/`end`) → success notification.
 8. **Settings page Zod validation:** `end < start` blocks submission with field-level error.
 9. **Settings page 400 PUT:** mocked 400 with `Error.message` → top-level `Alert` shows the message; query cache is unchanged; form values intact.
 10. **Settings page non-401 load error:** mocked 500 → `<ErrorState />` with Retry; clicking Retry re-runs the query.
 11. **Mid-session 401:** mocked 401 from `useAdminSettings` refetch → modal returns with the "rejected" inline message.
-12. **Late 401 after re-auth:** stored token A; an in-flight request returns 401 with `__sentToken === A`, but storage is now token B → middleware does _not_ clear the token; the `<AdminGate>` does not flap.
+12. **Late 401 after re-auth:** stored token A; an in-flight request returns 401 with `__sentToken === A`, but storage is now token B → middleware does *not* clear the token; the `<AdminGate>` does not flap.
 13. **Cross-tab storage sync:** simulate a `storage` event with `calendar.adminToken` cleared → `useAdminToken` re-renders consumers as null; `<AdminGate>` flips to the modal.
-14. **Sign out:** click Sign out in `<AdminLayout>` → token cleared with reason `'signed-out'`, navigation to `/`; modal that re-mounts on a future admin visit does _not_ show the "rejected" inline message.
+14. **Sign out:** click Sign out in `<AdminLayout>` → token cleared with reason `'signed-out'`, navigation to `/`; modal that re-mounts on a future admin visit does *not* show the "rejected" inline message.
 
 Manual verification: `npm run dev:full` → `/admin/settings` → enter any non-empty token → form populates from contract examples → toggle a day, change a time, Save → success → Sign out → modal returns on next visit.
 
@@ -377,12 +351,12 @@ Pre-merge gate: typecheck, lint, all Vitest tests, build all green; existing Pha
 
 ## Risk register
 
-| Risk                                                                              | Mitigation                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`X-Admin-Token` in `localStorage` is exfiltratable via XSS.**                   | Accepted v1 trade-off (Codex finding 1). The frontend already has a strict policy of no `dangerouslySetInnerHTML` and no third-party-origin script tags; we'll codify this in a short security note in `frontend/README.md`. Long-term, when a real backend lands we can move to an `HttpOnly` cookie at the cost of a CSRF strategy — out of scope for v1 against Prism. The token is also coarse-grained (whole admin namespace), so the blast radius is bounded by the contract. |
-| Mantine v9 polymorphic `component={Link}` typing pain (hit in Phase 1).           | We already wrap manually around `Title`/`Button` where polymorphism breaks. Use the same pattern in the admin shell.                                                                                                                                                                                                                                                                                                                                                                |
-| `Intl.supportedValuesOf('timeZone')` availability.                                | Supported in all browsers we target (Chrome 99+, Safari 15.4+, Firefox 93+ — all ≥ 2022). No fallback list. If runtime support is missing we surface a clear console error rather than silently degrading.                                                                                                                                                                                                                                                                          |
-| Mid-session 401 losing unsaved settings edits.                                    | Documented limitation; deferred to Phase 5.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Prism not honouring `@opExample` for admin endpoints.                             | Validated in Phase 1 that schema-level `@example` works; `@opExample` produces operation-level `examples` which Prism prefers. We'll verify against the running mock as part of the test pass.                                                                                                                                                                                                                                                                                      |
-| Late 401 from a request sent with a previously stored token clears the new token. | `onResponse` middleware compares the request's `__sentToken` to the currently stored token before clearing (Codex finding 2).                                                                                                                                                                                                                                                                                                                                                       |
-| Cross-tab "rejected" message reliability.                                         | `rejectedAt` is persisted to `localStorage`; the `storage` event triggers re-renders in other tabs which then read `getRejectedAt()` (Codex finding 7).                                                                                                                                                                                                                                                                                                                             |
+| Risk | Mitigation |
+|---|---|
+| **`X-Admin-Token` in `localStorage` is exfiltratable via XSS.** | Accepted v1 trade-off (Codex finding 1). The frontend already has a strict policy of no `dangerouslySetInnerHTML` and no third-party-origin script tags; we'll codify this in a short security note in `frontend/README.md`. Long-term, when a real backend lands we can move to an `HttpOnly` cookie at the cost of a CSRF strategy — out of scope for v1 against Prism. The token is also coarse-grained (whole admin namespace), so the blast radius is bounded by the contract. |
+| Mantine v9 polymorphic `component={Link}` typing pain (hit in Phase 1). | We already wrap manually around `Title`/`Button` where polymorphism breaks. Use the same pattern in the admin shell. |
+| `Intl.supportedValuesOf('timeZone')` availability. | Supported in all browsers we target (Chrome 99+, Safari 15.4+, Firefox 93+ — all ≥ 2022). No fallback list. If runtime support is missing we surface a clear console error rather than silently degrading. |
+| Mid-session 401 losing unsaved settings edits. | Documented limitation; deferred to Phase 5. |
+| Prism not honouring `@opExample` for admin endpoints. | Validated in Phase 1 that schema-level `@example` works; `@opExample` produces operation-level `examples` which Prism prefers. We'll verify against the running mock as part of the test pass. |
+| Late 401 from a request sent with a previously stored token clears the new token. | `onResponse` middleware compares the request's `__sentToken` to the currently stored token before clearing (Codex finding 2). |
+| Cross-tab "rejected" message reliability. | `rejectedAt` is persisted to `localStorage`; the `storage` event triggers re-renders in other tabs which then read `getRejectedAt()` (Codex finding 7). |

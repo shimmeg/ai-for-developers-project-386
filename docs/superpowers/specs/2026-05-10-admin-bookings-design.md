@@ -28,12 +28,12 @@ Contract endpoints already exist in [`contract/admin.tsp`](../../../contract/adm
 
 ## Decisions (settled in brainstorming)
 
-| Question                | Choice                                                                                                                        | Reason                                                                                                                   |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Cancel confirmation UX  | **Confirm modal** with the booking's start time + guest name + a destructive button + the "guest is not notified" caveat      | Cancel is destructive (frees a slot, no email is sent — spec §1). One extra click is cheap; an undoable misclick is not. |
-| Empty state copy        | **Title + one-line guidance + CTA** that navigates to `/admin/event-types`                                                    | Mirrors Phase 3's empty-state shape exactly so the admin surface stays visually consistent.                              |
-| Notes display           | **Truncate to ~80 chars** with a Mantine `Tooltip` revealing the full text                                                    | Keeps row heights uniform; full text remains accessible (keyboard- and touch-reachable per the post-review fix).         |
-| Cancel mutation pattern | **Optimistic remove + rollback on error** in the hook file (not the page), same shape as Phase 3's `useToggleActiveEventType` | Matches the convention in [`api/queries/eventTypesAdmin.ts`](../../../frontend/src/api/queries/eventTypesAdmin.ts).      |
+| Question | Choice | Reason |
+|---|---|---|
+| Cancel confirmation UX | **Confirm modal** with the booking's start time + guest name + a destructive button + the "guest is not notified" caveat | Cancel is destructive (frees a slot, no email is sent — spec §1). One extra click is cheap; an undoable misclick is not. |
+| Empty state copy | **Title + one-line guidance + CTA** that navigates to `/admin/event-types` | Mirrors Phase 3's empty-state shape exactly so the admin surface stays visually consistent. |
+| Notes display | **Truncate to ~80 chars** with a Mantine `Tooltip` revealing the full text | Keeps row heights uniform; full text remains accessible (keyboard- and touch-reachable per the post-review fix). |
+| Cancel mutation pattern | **Optimistic remove + rollback on error** in the hook file (not the page), same shape as Phase 3's `useToggleActiveEventType` | Matches the convention in [`api/queries/eventTypesAdmin.ts`](../../../frontend/src/api/queries/eventTypesAdmin.ts). |
 
 ## Architecture
 
@@ -41,8 +41,8 @@ Contract endpoints already exist in [`contract/admin.tsp`](../../../contract/adm
 
 One new route under the existing `<AdminGate>` → `<AdminLayout>` branch:
 
-| Path              | Component          | Notes                                                                                                      |
-| ----------------- | ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Path | Component | Notes |
+|---|---|---|
 | `/admin/bookings` | `<BookingsPage />` | Sibling of `settings` + `event-types`. Index redirect (`<Navigate to="settings" replace />`) is unchanged. |
 
 `<AdminLayout>` gains a third nav link, "Bookings", alongside Settings and Event types.
@@ -63,7 +63,7 @@ frontend/src/
 
 ### Hard rules from the spec / contract (don't drift)
 
-- **Render `durationMinutesSnapshot`** from the booking record — _not_ the live event-type duration ([business spec §1.2](../../../docs/business-description.md)).
+- **Render `durationMinutesSnapshot`** from the booking record — *not* the live event-type duration ([business spec §1.2](../../../docs/business-description.md)).
 - **Past bookings are not displayed** — the contract guarantees the GET returns only upcoming.
 - **No guest-side cancellation in v1** — cancel is owner-only.
 - **No email is sent on cancel** — surface this in the cancel-confirmation copy.
@@ -77,24 +77,18 @@ The optimistic cancel lives in the hook file alongside `useAdminBookings`. The p
 ```ts
 useMutation<void, HttpError, { id: string }, { previous?: Booking[] }>({
   retry: false,
-  mutationFn: ({ id }) =>
-    adminClient.DELETE("/admin/bookings/{id}", { params: { path: { id } } }),
+  mutationFn: ({ id }) => adminClient.DELETE('/admin/bookings/{id}', { params: { path: { id } } }),
   onMutate: async ({ id }) => {
     await queryClient.cancelQueries({ queryKey: bookingsAdminKeys.all });
     const previous = queryClient.getQueryData<Booking[]>(bookingsAdminKeys.all);
-    queryClient.setQueryData<Booking[]>(
-      bookingsAdminKeys.all,
-      previous?.filter((b) => b.id !== id),
-    );
+    queryClient.setQueryData<Booking[]>(bookingsAdminKeys.all, previous?.filter(b => b.id !== id));
     return { previous };
   },
   onError: (_err, _vars, ctx) => {
-    if (ctx?.previous)
-      queryClient.setQueryData(bookingsAdminKeys.all, ctx.previous);
+    if (ctx?.previous) queryClient.setQueryData(bookingsAdminKeys.all, ctx.previous);
   },
-  onSettled: () =>
-    queryClient.invalidateQueries({ queryKey: bookingsAdminKeys.all }),
-});
+  onSettled: () => queryClient.invalidateQueries({ queryKey: bookingsAdminKeys.all }),
+})
 ```
 
 The page handles user-facing notifications (`Booking cancelled` / `Already cancelled` for 404 / `Cancel failed` for everything else) and modal close, since notification copy lives next to the calling code — same split as Phase 3's toggle.
@@ -150,7 +144,6 @@ Without these decorators, the page renders against an empty array.
 Smoke tests in [`frontend/src/test/`](../../../frontend/src/test/) — mocked `adminClient` at module boundary, mirrors the Phase 3 page test:
 
 **`bookingsAdmin.test.tsx` — hook tests (5):**
-
 1. `useAdminBookings` returns the list when GET succeeds.
 2. `useAdminBookings` throws `HttpError` and does not retry on a 401.
 3. `useCancelBooking` removes the row optimistically before the DELETE resolves.
@@ -158,7 +151,6 @@ Smoke tests in [`frontend/src/test/`](../../../frontend/src/test/) — mocked `a
 5. `useCancelBooking` invalidates `bookingsAdminKeys.all` on success.
 
 **`CancelBookingModal.test.tsx` — modal tests (6):**
-
 1. Renders the booking summary (event type, guest name, start time).
 2. Surfaces the "guest is not notified" caveat.
 3. `Cancel booking` button calls `onConfirm`.
@@ -167,7 +159,6 @@ Smoke tests in [`frontend/src/test/`](../../../frontend/src/test/) — mocked `a
 6. Notes preview is omitted when `guestNotes` is missing.
 
 **`BookingsPage.test.tsx` — page tests (8):**
-
 1. Renders the rows from the GET response.
 2. Renders `durationMinutesSnapshot`, guest email, and a truncated notes preview.
 3. Empty state with CTA linking to `/admin/event-types`.
@@ -179,9 +170,9 @@ Smoke tests in [`frontend/src/test/`](../../../frontend/src/test/) — mocked `a
 
 ## Risk register
 
-| Risk                                                                                             | Mitigation                                                                                              |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Risk | Mitigation |
+|---|---|
 | Optimistic remove vs. concurrent server changes (Prism doesn't have this; a real backend might). | The mutation's `onError` rolls the cache back; `onSettled` re-syncs. A 404 is treated as a benign race. |
-| Settings query erroring while bookings succeeds.                                                 | Page falls back to UTC for rendering so the cancel flow still works.                                    |
-| Long notes dominating the table.                                                                 | Truncated to 80 chars + Tooltip on hover/focus/touch with full content in `aria-label` for AT.          |
-| `<AdminLayout>` nav links growing crowded as Phase 5 lands.                                      | Three links is fine; we'll review if Phase 5 adds more.                                                 |
+| Settings query erroring while bookings succeeds. | Page falls back to UTC for rendering so the cancel flow still works. |
+| Long notes dominating the table. | Truncated to 80 chars + Tooltip on hover/focus/touch with full content in `aria-label` for AT. |
+| `<AdminLayout>` nav links growing crowded as Phase 5 lands. | Three links is fine; we'll review if Phase 5 adds more. |
