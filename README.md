@@ -6,7 +6,7 @@
 
 A simple Calendly-style booking service built as a Hexlet learning project. A single, pre-defined calendar owner publishes the event types they offer; anonymous guests pick a type and book a free slot in the next 14 days. No accounts, no logins, no email — v1 is deliberately the smallest useful slice.
 
-> **Status:** v1 is in active development. Behaviour spec, API contract, and the React/TypeScript frontend (Phases 1-3) are in place; the backend will follow.
+> **Status:** v1 is in active development. Behaviour spec, API contract, React/TypeScript frontend, and a Go backend with in-memory storage are in place. Persistence (PostgreSQL + GORM) follows in a future iteration.
 
 ## Security — do not deploy this version publicly
 
@@ -21,12 +21,15 @@ v1 has **no real authentication**. The owner-only `/admin/*` endpoints are prote
 | [`docs/business-description.md`](docs/business-description.md) | Authoritative description of the v1 behaviour: roles, entities, flows, slot rules, non-goals, verification scenarios.                                                                    |
 | [`contract/`](contract)                                        | TypeSpec API contract that compiles to OpenAPI 3.1. Source of truth for the HTTP API shared between frontend and backend.                                                                |
 | [`frontend/`](frontend)                                        | Vite + React + TypeScript + Mantine app. Consumes only the contract; talks to a Prism mock locally. See [`frontend/README.md`](frontend/README.md) for setup, scripts, and walkthroughs. |
+| [`backend/`](backend)                                          | Go + Gin HTTP service. Implements the contract end-to-end; v1 uses in-memory storage. See [`backend/README.md`](backend/README.md). |
 
-`backend/` and database directories will be added in a future phase.
+A database directory will be added in a future phase, alongside a PostgreSQL/GORM swap-in for the backend.
 
 ## Running the project locally
 
-The frontend is the only runnable component today; it ships with a Prism mock of the contract so no backend is required.
+You can run the frontend on its own against a Prism mock (no backend needed) or against the real Go backend.
+
+### Option A — frontend + Prism mock
 
 ```bash
 cd frontend
@@ -34,6 +37,22 @@ npm install                       # one-time
 npm run gen:api                   # regenerate src/api/types.ts from the contract
 npm run dev:full                  # contract watcher + Prism mock + Vite, in one process
 ```
+
+### Option B — frontend + Go backend
+
+```bash
+# Backend (terminal 1)
+cd backend
+cp .env.example .env
+ADMIN_TOKEN="$(openssl rand -hex 24)" make run        # listens on :3000
+
+# Frontend (terminal 2)
+cd frontend
+echo "VITE_API_BASE_URL=http://localhost:3000" > .env.local
+npm run gen:api && npm run dev                        # :5173
+```
+
+Or run everything in one process: `cd frontend && npm run dev:full:backend` (contract watcher + backend + Vite).
 
 Open <http://localhost:5173>. Full walkthroughs (guest happy path, admin flows, automated checks) live in [`frontend/README.md`](frontend/README.md).
 
