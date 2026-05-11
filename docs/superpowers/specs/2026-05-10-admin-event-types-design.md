@@ -36,8 +36,8 @@ The slice is intentionally narrow: list + create + edit + active toggle on a sin
 
 One new route, sibling to `/admin/settings` under the existing admin gate + layout:
 
-| Path | Component | Notes |
-|---|---|---|
+| Path                 | Component            | Notes                                                   |
+| -------------------- | -------------------- | ------------------------------------------------------- |
 | `/admin/event-types` | `<EventTypesPage />` | List + modal-driven create/edit + inline active toggle. |
 
 `<AdminLayout>` gains a second nav link, "Event types", alongside "Settings".
@@ -64,7 +64,7 @@ frontend/src/
 
 ### Reused from Phase 2
 
-- `api/adminClient.ts` — already injects `X-Admin-Token`, already clears storage with `reason: 'rejected'` on 401 *only when the sent token still matches storage*.
+- `api/adminClient.ts` — already injects `X-Admin-Token`, already clears storage with `reason: 'rejected'` on 401 _only when the sent token still matches storage_.
 - `lib/httpError.ts` — `HttpError` carrier; new admin hooks throw it the same way `useAdminSettings` does.
 - `components/AdminGate.tsx`, `components/AdminLayout.tsx` — chrome and the route-level auth gate.
 - `lib/queryClient.ts` — global defaults; the new hooks override `retry` to disable retries on 4xx.
@@ -128,12 +128,12 @@ type Props =
 
 ### Fields
 
-| Field | Input | Validation (Zod, mirrors contract) |
-|---|---|---|
-| `slug` | `TextInput`, monospace, `minLength={1}`, `maxLength={64}` | `^[a-z0-9]+(-[a-z0-9]+)*$`. Edit mode shows a one-line help: "Changing the slug breaks any links you've shared." |
-| `name` | `TextInput`, required | trim, `min(1)`, `max(120)` |
-| `description` | `Textarea` (autosize, ≥3 rows), required | trim, `min(1)`, `max(2000)` |
-| `durationMinutes` | `NumberInput`, `min={1}`, `max={60 * 24}`, default 30 in create mode | `int().min(1).max(60 * 24)` |
+| Field             | Input                                                                | Validation (Zod, mirrors contract)                                                                               |
+| ----------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `slug`            | `TextInput`, monospace, `minLength={1}`, `maxLength={64}`            | `^[a-z0-9]+(-[a-z0-9]+)*$`. Edit mode shows a one-line help: "Changing the slug breaks any links you've shared." |
+| `name`            | `TextInput`, required                                                | trim, `min(1)`, `max(120)`                                                                                       |
+| `description`     | `Textarea` (autosize, ≥3 rows), required                             | trim, `min(1)`, `max(2000)`                                                                                      |
+| `durationMinutes` | `NumberInput`, `min={1}`, `max={60 * 24}`, default 30 in create mode | `int().min(1).max(60 * 24)`                                                                                      |
 
 `active` is **not** in the form. Create defaults true server-side (`EventTypeCreate` has no `active` field). Toggling active is a row-level action, not a modal-level field — keeps the modal focused on the editable shape and makes the toggle one click instead of "open modal → flip switch → save".
 
@@ -251,9 +251,9 @@ Pre-merge gates: typecheck, lint, all Vitest tests, build all green; existing Ph
 
 ## Risk register
 
-| Risk | Mitigation |
-|---|---|
+| Risk                                                                                            | Mitigation                                                                                                                                                                                              |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Optimistic toggle vs concurrent server changes (Prism doesn't have this; a real backend might). | The mutation's `onError` rolls the cache back; `onSuccess` re-syncs from the server response. The list query also gets invalidated on every mutation success so any drift is fixed by the next refetch. |
-| Slug rename breaking shared public URLs. | Inline help text in edit mode; spec accepts this as v1 behaviour. |
-| Form-state lost on mid-session 401. | Same as Phase 2 caveat; deferred to a later phase. |
-| `AdminLayout` nav links growing crowded as Phase 4 lands. | Two nav links is fine; we'll review the chrome when Phase 4 adds Bookings. |
+| Slug rename breaking shared public URLs.                                                        | Inline help text in edit mode; spec accepts this as v1 behaviour.                                                                                                                                       |
+| Form-state lost on mid-session 401.                                                             | Same as Phase 2 caveat; deferred to a later phase.                                                                                                                                                      |
+| `AdminLayout` nav links growing crowded as Phase 4 lands.                                       | Two nav links is fine; we'll review the chrome when Phase 4 adds Bookings.                                                                                                                              |

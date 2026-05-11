@@ -44,26 +44,15 @@ Phase 5 in [`frontend/ROADMAP.md`](../../../frontend/ROADMAP.md) names both item
 
 ```tsx
 // frontend/src/routes.tsx
-import { createBrowserRouter, Navigate, Outlet } from "react-router";
+import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 // ... existing imports
 
-const lazyNamed = <K extends string>(
-  loader: () => Promise<Record<K, ComponentType>>,
-  name: K,
-) => lazy(() => loader().then((m) => ({ default: m[name] })));
+const lazyNamed = <K extends string>(loader: () => Promise<Record<K, ComponentType>>, name: K) =>
+  lazy(() => loader().then((m) => ({ default: m[name] })));
 
-const SettingsPage = lazyNamed(
-  () => import("./features/admin/SettingsPage"),
-  "SettingsPage",
-);
-const EventTypesPage = lazyNamed(
-  () => import("./features/admin/EventTypesPage"),
-  "EventTypesPage",
-);
-const BookingsPage = lazyNamed(
-  () => import("./features/admin/BookingsPage"),
-  "BookingsPage",
-);
+const SettingsPage = lazyNamed(() => import('./features/admin/SettingsPage'), 'SettingsPage');
+const EventTypesPage = lazyNamed(() => import('./features/admin/EventTypesPage'), 'EventTypesPage');
+const BookingsPage = lazyNamed(() => import('./features/admin/BookingsPage'), 'BookingsPage');
 
 export const router = createBrowserRouter([
   {
@@ -74,16 +63,16 @@ export const router = createBrowserRouter([
         element: <Outlet />,
         errorElement: <RouteErrorElement />,
         children: [
-          { path: "/", element: <CatalogPage /> },
-          { path: "/events/:slug", element: <SlotPickerPage /> },
-          { path: "/events/:slug/confirm", element: <ConfirmPage /> },
-          { path: "/events/:slug/booked/:id", element: <SuccessPage /> },
+          { path: '/', element: <CatalogPage /> },
+          { path: '/events/:slug', element: <SlotPickerPage /> },
+          { path: '/events/:slug/confirm', element: <ConfirmPage /> },
+          { path: '/events/:slug/booked/:id', element: <SuccessPage /> },
         ],
       },
     ],
   },
   {
-    path: "/admin",
+    path: '/admin',
     element: <AdminGate />,
     children: [
       {
@@ -95,16 +84,16 @@ export const router = createBrowserRouter([
             errorElement: <RouteErrorElement />,
             children: [
               { index: true, element: <Navigate to="settings" replace /> },
-              { path: "settings", element: <SettingsPage /> },
-              { path: "event-types", element: <EventTypesPage /> },
-              { path: "bookings", element: <BookingsPage /> },
+              { path: 'settings', element: <SettingsPage /> },
+              { path: 'event-types', element: <EventTypesPage /> },
+              { path: 'bookings', element: <BookingsPage /> },
             ],
           },
         ],
       },
     ],
   },
-  { path: "*", element: <NotFoundPage /> },
+  { path: '*', element: <NotFoundPage /> },
 ]);
 ```
 
@@ -133,13 +122,13 @@ This keeps the header + nav visible while the admin page chunk loads. Guest [`<L
 
 ```tsx
 // frontend/src/components/RouteErrorElement.tsx
-import { useRouteError } from "react-router";
-import { ErrorState } from "./ErrorState";
+import { useRouteError } from 'react-router';
+import { ErrorState } from './ErrorState';
 
 export function RouteErrorElement() {
   const error = useRouteError();
-  if (import.meta.env.DEV) console.error("Route error:", error);
-  const message = error instanceof Error ? error.message : "Unexpected error";
+  if (import.meta.env.DEV) console.error('Route error:', error);
+  const message = error instanceof Error ? error.message : 'Unexpected error';
   return (
     <ErrorState
       title="Something went wrong"
@@ -173,19 +162,19 @@ No `package.json` changes — `react-router`, `@mantine/core`, `@tabler/icons-re
 - Use `createMemoryRouter` (the data-router factory) **not** `<MemoryRouter>` — the component form does not honor route-object `errorElement`. Sketch:
 
   ```tsx
-  import { createMemoryRouter, RouterProvider } from "react-router";
-  import { MantineProvider } from "@mantine/core";
-  import { render, screen } from "@testing-library/react";
-  import { RouteErrorElement } from "../components/RouteErrorElement";
+  import { createMemoryRouter, RouterProvider } from 'react-router';
+  import { MantineProvider } from '@mantine/core';
+  import { render, screen } from '@testing-library/react';
+  import { RouteErrorElement } from '../components/RouteErrorElement';
 
   function Boom(): never {
-    throw new Error("boom");
+    throw new Error('boom');
   }
 
   function renderRoute(element: React.ReactNode) {
     const router = createMemoryRouter(
-      [{ path: "/", element, errorElement: <RouteErrorElement /> }],
-      { initialEntries: ["/"] },
+      [{ path: '/', element, errorElement: <RouteErrorElement /> }],
+      { initialEntries: ['/'] },
     );
     return render(
       <MantineProvider>

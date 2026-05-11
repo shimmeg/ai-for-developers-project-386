@@ -41,6 +41,7 @@ frontend/src/
 So Prism returns realistic mock data on the four `AdminEventTypes` operations. Without it, the list page has nothing to render against the mock.
 
 **Files:**
+
 - Modify: `contract/admin.tsp`
 
 - [ ] **Step 1: Add `@opExample` decorators**
@@ -201,6 +202,7 @@ EOF
 Pure module: form schema mirroring the contract, plus a small `diffEventType()` that computes the PATCH body for edit mode.
 
 **Files:**
+
 - Create: `frontend/src/features/admin/event-type-schema.ts`
 - Test: `frontend/src/test/event-type-schema.test.ts`
 
@@ -210,10 +212,7 @@ Create `frontend/src/test/event-type-schema.test.ts`:
 
 ```typescript
 import { describe, expect, it } from 'vitest';
-import {
-  EventTypeFormSchema,
-  diffEventType,
-} from '../features/admin/event-type-schema';
+import { EventTypeFormSchema, diffEventType } from '../features/admin/event-type-schema';
 
 const ok = {
   slug: 'intro-call',
@@ -228,16 +227,22 @@ describe('EventTypeFormSchema', () => {
   });
 
   it('rejects empty / spaced / uppercase slugs', () => {
-    for (const slug of ['', 'Intro Call', 'INTRO', 'intro_call', 'intro--call', '-intro', 'intro-']) {
+    for (const slug of [
+      '',
+      'Intro Call',
+      'INTRO',
+      'intro_call',
+      'intro--call',
+      '-intro',
+      'intro-',
+    ]) {
       expect(EventTypeFormSchema.safeParse({ ...ok, slug }).success).toBe(false);
     }
   });
 
   it('rejects 0 / negative / non-integer / >24h duration', () => {
     for (const d of [0, -1, 1.5, 60 * 24 + 1]) {
-      expect(
-        EventTypeFormSchema.safeParse({ ...ok, durationMinutes: d }).success,
-      ).toBe(false);
+      expect(EventTypeFormSchema.safeParse({ ...ok, durationMinutes: d }).success).toBe(false);
     }
   });
 
@@ -257,9 +262,10 @@ describe('diffEventType', () => {
     expect(diffEventType(ok, { ...ok, name: 'New name' })).toEqual({
       name: 'New name',
     });
-    expect(
-      diffEventType(ok, { ...ok, slug: 'intro', durationMinutes: 45 }),
-    ).toEqual({ slug: 'intro', durationMinutes: 45 });
+    expect(diffEventType(ok, { ...ok, slug: 'intro', durationMinutes: 45 })).toEqual({
+      slug: 'intro',
+      durationMinutes: 45,
+    });
   });
 });
 ```
@@ -342,6 +348,7 @@ EOF
 Three hooks wrapping `adminClient`, all throwing `HttpError` on non-2xx and disabling retries on 4xx. Same shape as `useAdminSettings`/`useUpdateAdminSettings` from Phase 2.
 
 **Files:**
+
 - Create: `frontend/src/api/queries/eventTypesAdmin.ts`
 - Test: `frontend/src/test/eventTypesAdmin.test.ts`
 
@@ -531,11 +538,7 @@ export function useCreateEventType() {
 
 export function useUpdateEventType() {
   const queryClient = useQueryClient();
-  return useMutation<
-    EventType,
-    HttpError,
-    { slug: string; body: EventTypeUpdate }
-  >({
+  return useMutation<EventType, HttpError, { slug: string; body: EventTypeUpdate }>({
     retry: (count, err) => (isHttp4xx(err) ? false : count < 1),
     mutationFn: async ({ slug, body }) => {
       const res = await adminClient.PATCH('/admin/event-types/{slug}', {
@@ -587,6 +590,7 @@ EOF
 Single component used for both Create and Edit. Mode is implied by props.
 
 **Files:**
+
 - Create: `frontend/src/features/admin/EventTypeFormModal.tsx`
 - Test: `frontend/src/test/EventTypeFormModal.test.tsx`
 
@@ -945,6 +949,7 @@ EOF
 The list page: table with active toggle (optimistic + rollback), edit button per row, header create button, empty state.
 
 **Files:**
+
 - Create: `frontend/src/features/admin/EventTypesPage.tsx`
 - Test: `frontend/src/test/EventTypesPage.test.tsx`
 
@@ -1311,6 +1316,7 @@ EOF
 Add the nav link to `<AdminLayout>` and the child route to `routes.tsx`.
 
 **Files:**
+
 - Modify: `frontend/src/components/AdminLayout.tsx`
 - Modify: `frontend/src/routes.tsx`
 
@@ -1363,6 +1369,7 @@ import { EventTypesPage } from './features/admin/EventTypesPage';
 ```bash
 npm run typecheck && npm run lint && npm test && npm run build
 ```
+
 Expected: all green.
 
 - [ ] **Step 4: Commit**
@@ -1391,6 +1398,7 @@ From `frontend/`:
 ```bash
 npm run typecheck && npm run lint && npm test && npm run build
 ```
+
 Expected: all green; new tests in the count.
 
 - [ ] **Step 2: Walk the flow against Prism**
@@ -1447,6 +1455,7 @@ EOF
 ## Self-review (skill checklist)
 
 **Spec coverage:**
+
 - Routes (sibling to /admin/settings, no /:slug routes): Task 6.
 - File layout (eventTypesAdmin.ts, event-type-schema.ts, EventTypeFormModal.tsx, EventTypesPage.tsx): Tasks 2, 3, 4, 5.
 - AdminLayout nav addition: Task 6.
@@ -1463,6 +1472,7 @@ EOF
 **Placeholder scan:** No "TBD" / "implement later". Each task has full code blocks.
 
 **Type consistency:**
+
 - `EventTypeFormValues` defined in Task 2, imported by Task 4.
 - `diffEventType(before, after)` signature consistent: Task 2 schema test + Task 4 use.
 - `EventType` / `EventTypeCreate` / `EventTypeUpdate` types consistent across Tasks 3, 4, 5.

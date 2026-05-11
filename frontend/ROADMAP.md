@@ -210,7 +210,7 @@ These are independent tasks; each can be its own small PR.
   - Slot picker: selection + URL persistence + `?slot=` round-trip with `+` offset.
   - Success page: render-from-cache vs. render-without-state.
   - (Optional) Playwright E2E happy path against Prism.
-- [ ] **CI workflow** — `.github/workflows/frontend.yml`: install, gen:api, typecheck, lint, test, build, and `prettier --check .` on every PR.
+- [x] **CI workflow** — `.github/workflows/frontend.yml` runs the full pre-merge gate (contract test → frontend gen:api → typecheck → lint → test → build → repo-root `prettier --check .`) on every PR and push to `main`. Includes the Vitest `restoreMocks: true` polish and the integration test for "leaf render error preserves layout shell" (PR #12 follow-ups 1, 4) plus the AdminLayout Suspense `mih="60vh"` (follow-up 3) and the repo-root prettier sweep (follow-up 5).
 - [ ] **Bundle analysis** — `rollup-plugin-visualizer` once to spot large deps; consider trimming Tabler icons import.
 - [ ] **Add `@example` decorators on admin operations** — finish the work started in Phase 1 so Prism mocks all admin endpoints realistically.
 

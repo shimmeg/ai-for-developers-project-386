@@ -41,7 +41,7 @@ export function AdminLayout() {
         <Container size="lg">
           <Suspense
             fallback={
-              <Stack align="center" mt="xl">
+              <Stack align="center" mt="xl" mih="60vh">
                 <Loader />
               </Stack>
             }
