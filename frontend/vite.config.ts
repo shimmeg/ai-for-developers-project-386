@@ -16,6 +16,7 @@ export default defineConfig({
       jsdom: { url: 'http://localhost/' },
     },
     globals: true,
+    restoreMocks: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
   },
