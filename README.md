@@ -12,7 +12,7 @@ A simple Calendly-style booking service built as a Hexlet learning project. A si
 
 v1 has **no real authentication**. The owner-only `/admin/*` endpoints are protected by a single shared `X-Admin-Token` configured per-deployment, and the frontend stores that token in `localStorage`. There is no per-user account model, no password rotation, no rate limiting, and no email verification of guest bookings. This is an explicit non-goal for the learning slice and is documented in [`docs/business-description.md`](docs/business-description.md) §5.
 
-**Do not deploy this version on the public internet.** Run it locally or behind a private network only. Real authentication, CSRF protection, and account management land in a future version.
+**Do not deploy this version on the public internet** for real use. Run it locally or behind a private network only. The Render deployment described in [`## Deployment`](#deployment) below is a learning artefact for the Hexlet course step — the warning still applies, and the public instance is not intended for real traffic. Real authentication, CSRF protection, and account management land in a future version.
 
 ## Repository structure
 
@@ -88,6 +88,44 @@ curl -s http://localhost:3000/event-types | jq
 curl -i http://localhost:3000/admin/settings
 curl -i -H "X-Admin-Token: $ADMIN_TOKEN" http://localhost:3000/admin/settings
 ```
+
+## Deployment
+
+> Public instance for the Hexlet course step — the [security warning](#security--do-not-deploy-this-version-publicly) at the top of this file still applies. Don't book real meetings here.
+
+**Public URL:** _set after first deploy — see step 4 below._
+
+The repo ships with a single `Dockerfile` that builds the frontend, the OpenAPI server stubs, and the Go binary, then packs everything into a ~30 MB Alpine image. The Go server reads the built SPA from `STATIC_DIR` and serves it on the same port as the API, so one deploy = one URL.
+
+### Build and run locally with Docker
+
+```bash
+docker build -t calendar-service:dev .
+
+docker run --rm -p 8080:10000 \
+  -e ADMIN_TOKEN=$(openssl rand -hex 24) \
+  -e DEFAULT_TZ=Europe/Moscow \
+  calendar-service:dev
+# → http://localhost:8080
+```
+
+`PORT` defaults to `10000` inside the container; override it with `-e PORT=9000` if you need to. The frontend is served on `/` and the API on `/event-types`, `/admin/*`.
+
+### Deploy to Render (free plan)
+
+A [`render.yaml`](render.yaml) blueprint is checked in. Steps:
+
+1. Fork this repository on GitHub.
+2. In Render, **New +** → **Blueprint** → connect your fork. Render auto-detects `render.yaml` and creates one Docker web service.
+3. Wait for the first build (~5 min — TypeSpec + Vite + Go all run inside the image).
+4. Copy the public URL Render assigns (e.g. `https://calendar-service-xxxx.onrender.com`) and paste it above this list.
+5. Grab the generated `ADMIN_TOKEN` from Render Dashboard → **Environment**.
+
+### Known limitations on the free plan
+
+- **Cold start.** Render spins the service down after ~15 min of inactivity; the next request takes ~60 s while it boots back up.
+- **No persistence.** The v1 store is in-memory, so every restart or redeploy wipes all bookings, event types, and settings. This is the documented v1 storage model, not a Render quirk.
+- **Single shared admin token.** Anyone with the URL can hit `/admin/*` if they guess the token; treat the public URL as a demo only and rotate the token if you ever share it.
 
 ## Testing
 

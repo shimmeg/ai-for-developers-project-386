@@ -1,0 +1,27 @@
+# VCS / IDE / OS
+.git
+.github
+.idea
+.vscode
+.DS_Store
+
+# Generated artefacts — regenerated inside the build
+contract/tsp-output
+frontend/dist
+**/node_modules
+backend/internal/api/api.gen.go
+backend/calendar-service
+
+# Local environment files — never bake these into the image
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Things the build doesn't need
+e2e
+docs
+**/*.md
+!frontend/index.html
+
+# Logs
+**/*.log

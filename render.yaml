@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: calendar-service
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    healthCheckPath: /event-types
+    envVars:
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: DEFAULT_TZ
+        value: Europe/Moscow
+      - key: LOG_LEVEL
+        value: info

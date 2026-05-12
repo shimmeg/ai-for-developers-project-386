@@ -57,7 +57,7 @@ func run() error {
 	)
 
 	gin.SetMode(gin.ReleaseMode)
-	engine := server.BuildEngine(srv, cfg.AdminToken, cfg.FrontendOrigin)
+	engine := server.BuildEngine(srv, cfg.AdminToken, cfg.FrontendOrigin, cfg.StaticDir)
 
 	httpSrv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),

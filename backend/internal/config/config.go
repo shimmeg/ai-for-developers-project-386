@@ -15,6 +15,7 @@ type Config struct {
 	Port           int
 	AdminToken     string
 	FrontendOrigin string
+	StaticDir      string
 	DefaultTZ      string
 	LogLevel       slog.Level
 }
@@ -54,6 +55,10 @@ func LoadFromEnv() (Config, error) {
 	if v := os.Getenv("FRONTEND_ORIGIN"); v != "" {
 		cfg.FrontendOrigin = v
 	}
+	// STATIC_DIR enables same-origin SPA hosting: when set, the server reads
+	// the built frontend from this directory and serves it alongside the
+	// API. Empty string disables it (the dev/test default).
+	cfg.StaticDir = os.Getenv("STATIC_DIR")
 	if v := os.Getenv("DEFAULT_TZ"); v != "" {
 		cfg.DefaultTZ = v
 	}
