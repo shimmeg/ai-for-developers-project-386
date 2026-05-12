@@ -17,5 +17,5 @@ frontend/src/api/types.ts
 # Lockfiles
 package-lock.json
 
-# Worktrees (avoid recursing into nested checkouts)
-.claude/worktrees/
+# Claude Code tooling config (agents, skills, launch configurations, worktrees)
+.claude/
