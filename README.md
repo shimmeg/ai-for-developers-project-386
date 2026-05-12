@@ -29,53 +29,54 @@ A database directory will be added in a future phase, alongside a PostgreSQL/GOR
 
 Prerequisites: **Go 1.23+** and **Node 22+**.
 
-You can run the frontend against the **Prism mock** (no backend required, useful for FE-only work) or against the **real Go backend** (end-to-end behaviour, real auth, real conflict checks).
+All multi-workspace orchestration goes through the root [`Makefile`](Makefile). Each workspace still has its own scripts (`npm`/`make`/`tsp`) for in-workspace work; the root Makefile is the only thing that knows how to wire them together.
 
 ### One-time setup
 
 ```bash
-( cd contract && npm ci && npm run build )            # build the OpenAPI YAML
-( cd backend  && cp .env.example .env )               # then edit backend/.env and set
+make install                                          # contract + frontend npm ci, backend go mod download
+( cd backend && cp .env.example .env )                # then edit backend/.env and set
                                                        #   ADMIN_TOKEN=$(openssl rand -hex 24)
-( cd frontend && npm ci && npm run gen:api )          # install deps + regenerate types
-```
-
-### Option A — frontend + Prism mock
-
-```bash
-cd frontend && npm run dev:full       # contract watcher + Prism on :4010 + Vite on :5173
-```
-
-The Prism mock returns the contract's example bodies for every operation and accepts any `X-Admin-Token`. Useful for working on the UI without touching the backend.
-
-### Option B — frontend + Go backend
-
-One command, in one terminal:
-
-```bash
-cd frontend && npm run dev:full:backend
-# contract watcher + Go backend on :3000 + Vite on :5173 (under `concurrently`)
-```
-
-…or split across two terminals if you prefer separate log streams:
-
-```bash
-# Terminal 1
-cd backend  && make run                       # :3000 (auto-loads backend/.env)
-
-# Terminal 2
-cd frontend && npm run dev                    # :5173
-```
-
-The backend auto-loads `backend/.env` on startup (process env vars win on conflict), so you do not need to export `ADMIN_TOKEN` manually as long as `.env` carries it.
-
-Point the frontend at the backend with `frontend/.env.local`:
-
-```bash
 echo "VITE_API_BASE_URL=http://localhost:3000" > frontend/.env.local
+make generate                                          # OpenAPI YAML + FE types + Go server stubs
 ```
+
+### Run everything together
+
+```bash
+make dev
+# contract watcher + Go backend on :3000 + Vite on :5173
+```
+
+`Ctrl-C` kills all three children at once. Logs from the three processes interleave on stdout — split them across terminals if you prefer:
+
+```bash
+make dev-backend      # just the Go backend on :3000 (auto-loads backend/.env)
+make dev-frontend     # just Vite on :5173
+```
+
+For FE-only work without the Go backend, run the Prism mock instead:
+
+```bash
+make dev-mock         # contract watcher + Prism on :4010 + Vite on :5173
+```
+
+The mock returns the contract's example bodies for every operation and accepts any `X-Admin-Token`, so it's faster for pure UI work but does **not** enforce auth, the no-overlap invariant, working hours, or the 14-day window. Switch to `make dev` for end-to-end behaviour.
 
 Open <http://localhost:5173>. The admin token modal asks for the value of `ADMIN_TOKEN` from `backend/.env`. Full walkthroughs (guest happy path, admin flows, automated checks) live in [`frontend/README.md`](frontend/README.md) and the §7 verification scenarios in [`docs/business-description.md`](docs/business-description.md).
+
+### Other root Makefile targets
+
+| Target          | What it does                                                                |
+| --------------- | --------------------------------------------------------------------------- |
+| `make help`     | Print the list of targets (default goal).                                   |
+| `make install`  | `npm ci` in contract + frontend, `go mod download` in backend.              |
+| `make generate` | Rebuild OpenAPI YAML, FE types, Go server stubs.                            |
+| `make build`    | Production build for every workspace.                                       |
+| `make test`     | Run every workspace's test suite.                                           |
+| `make lint`     | Backend `golangci-lint` + frontend `eslint` + repo-wide `prettier --check`. |
+| `make fmt`      | `gofmt` + `prettier --write` across the repo.                               |
+| `make clean`    | Remove generated artefacts.                                                 |
 
 ### Smoke checks once the backend is up
 

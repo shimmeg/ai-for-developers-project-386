@@ -74,13 +74,11 @@ the generator (no `unevaluatedProperties`, no JSON-Schema-2020-12 keywords).
 
 ## Running against the frontend
 
-The frontend at [`../frontend/`](../frontend/) talks to whatever
-`VITE_API_BASE_URL` points to. To wire it up against this backend:
+Multi-workspace orchestration lives in the [root Makefile](../Makefile):
 
 ```bash
 echo "VITE_API_BASE_URL=http://localhost:3000" > ../frontend/.env.local
-# Then, from frontend/:
-npm run dev:full:backend   # contract watcher + this backend + Vite in one process
+make -C .. dev        # contract watcher + this backend + Vite, in one process
 ```
 
 Use the value of `ADMIN_TOKEN` from `.env` when the frontend prompts for the
