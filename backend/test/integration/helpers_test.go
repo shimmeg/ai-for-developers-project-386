@@ -55,7 +55,7 @@ func newHarness(t *testing.T, now time.Time) *harness {
 		service.NewEventTypeService(store.EventTypes, clock),
 		service.NewBookingService(store.Settings, store.EventTypes, store.Bookings, clock),
 	)
-	engine := server.BuildEngine(srv, testAdminToken, "http://localhost:5173")
+	engine := server.BuildEngine(srv, testAdminToken, "http://localhost:5173", "")
 
 	ts := httptest.NewServer(engine)
 	t.Cleanup(ts.Close)
