@@ -72,6 +72,56 @@ represents as a union struct with `AsClosedDay`/`AsOpenDay`/`FromClosedDay`/
 for this contract — every shape that v3.1 brings is already understood by
 the generator (no `unevaluatedProperties`, no JSON-Schema-2020-12 keywords).
 
+## Running against the frontend
+
+The frontend at [`../frontend/`](../frontend/) talks to whatever
+`VITE_API_BASE_URL` points to. To wire it up against this backend:
+
+```bash
+echo "VITE_API_BASE_URL=http://localhost:3000" > ../frontend/.env.local
+# Then, from frontend/:
+npm run dev:full:backend   # contract watcher + this backend + Vite in one process
+```
+
+Use the value of `ADMIN_TOKEN` from `.env` when the frontend prompts for the
+admin token on the first `/admin/*` visit. CORS is allow-listed for
+`FRONTEND_ORIGIN`, which defaults to `http://localhost:5173`.
+
+## Verification
+
+The §7 verification scenarios in
+[`../docs/business-description.md`](../docs/business-description.md) are
+exercised programmatically by `make test`:
+
+- `test/integration/auth_test.go` and `auth_ordering_test.go` — token gating,
+  including the regression test that auth fires before generated path-param
+  binding (so `DELETE /admin/bookings/not-a-uuid` without a token is 401, not 400).
+- `test/integration/settings_test.go` — GET/PUT round-trip, bad timezone,
+  end ≤ start.
+- `test/integration/event_types_test.go` — CRUD lifecycle, slug uniqueness,
+  inactive types hidden from guests but visible to admin.
+- `test/integration/public_slots_test.go` — 14-day window shape, closed
+  weekends, inactive-event-type 404.
+- `test/integration/booking_happy_test.go` — happy path with snapshots,
+  slot removal from picker, admin visibility.
+- `test/integration/booking_conflict_test.go` — past slot, outside working
+  hours, grid misalignment, cross-event-type overlap, inactive event type,
+  malformed email.
+- `test/integration/cancel_test.go` — cancel frees the slot.
+- `test/integration/concurrency_test.go` — 20 goroutines POST the same slot;
+  exactly one 201 and 19 × 409 `slot_unavailable`, with a single row in storage.
+
+The same scenarios can be walked through the UI by following the
+"Against the Go backend" section in [`../frontend/README.md`](../frontend/README.md).
+
+## CI
+
+A `backend` workflow at [`../.github/workflows/backend.yml`](../.github/workflows/backend.yml)
+runs on every push/PR to `main`. It builds the contract, regenerates
+`internal/api/api.gen.go` via `oapi-codegen`, runs `go vet`,
+`go test ./... -race`, and `go build`. The repo-wide Prettier check still
+lives in the frontend workflow because Prettier doesn't touch Go.
+
 ## Future: PostgreSQL + GORM
 
 The plan is to add `internal/repository/postgres/` with GORM implementations
