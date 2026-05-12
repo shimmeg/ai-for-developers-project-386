@@ -1,6 +1,8 @@
 # Calendar Service — Frontend
 
-Vite + React + TypeScript + Mantine. Consumes only the [TypeSpec API contract](../contract/) — no knowledge of any backend implementation. During development you can run the frontend either against a [Prism](https://stoplight.io/open-source/prism) mock of the contract's OpenAPI (fast, no backend needed) or against the real [Go backend](../backend/) (real auth, real slot-conflict behaviour).
+Vite + React + TypeScript + Mantine. Consumes only the [TypeSpec API contract](../contract/) — no knowledge of any backend implementation. During development the API is served by [Prism](https://stoplight.io/open-source/prism) mocking the contract's generated OpenAPI 3.
+
+> Running the frontend together with the real backend is orchestrated from the **root [`Makefile`](../Makefile)** (`make dev`). The frontend itself stays single-purpose: contract in, UI out.
 
 ## Stack
 
@@ -27,17 +29,13 @@ npm run gen:api        # builds the contract and regenerates src/api/types.ts
 
 ## Running locally
 
-The frontend talks only to `VITE_API_BASE_URL`. There are two supported targets.
-
-### Against the Prism mock (no backend required)
-
-`.env.example` already points at `http://127.0.0.1:4010` (Prism). One-command dev (contract watcher + Prism + Vite, all in one process):
+The frontend talks only to `VITE_API_BASE_URL`. `.env.example` already points at `http://127.0.0.1:4010` (Prism). One-command dev (contract watcher + Prism + Vite, all in one process):
 
 ```bash
 npm run dev:full
 ```
 
-> **Note on the dev mock:** Prism returns the contract's example bodies for any `X-Admin-Token` header value — it does not enforce token validity, will not block double-booking, and ignores the configured timezone. Token-rejection and conflict paths are exercised via Vitest unit tests against a mocked client; for real auth and real slot-conflict behaviour, switch to the Go backend below.
+> **Note on the dev mock:** Prism returns the contract's example bodies for any `X-Admin-Token` header value — it does not enforce token validity, will not block double-booking, and ignores the configured timezone. Token-rejection and conflict paths are exercised via Vitest unit tests against a mocked client; for real auth and real slot-conflict behaviour, run the whole stack with `make dev` from the repo root (see the [root README](../README.md)).
 
 Or run each piece separately in three terminals:
 
@@ -52,29 +50,6 @@ npm run mock          # Prism on http://127.0.0.1:4010
 npm run dev           # Vite on http://localhost:5173
 ```
 
-### Against the Go backend
-
-Prerequisite: follow [`../backend/README.md`](../backend/README.md) once to copy `.env.example` to `.env` and put a real `ADMIN_TOKEN` in it.
-
-Then point the frontend at `:3000` and use the `dev:full:backend` script that runs the contract watcher, the Go backend, and Vite together:
-
-```bash
-echo "VITE_API_BASE_URL=http://localhost:3000" > .env.local
-npm run dev:full:backend
-```
-
-Or split into two terminals:
-
-```bash
-# Terminal 1 — backend on :3000
-( cd ../backend && make run )
-
-# Terminal 2 — frontend on :5173
-npm run dev
-```
-
-Unlike the Prism mock, the Go backend enforces the admin token, the cross-event-type non-overlap invariant, the working-hours grid, and the 14-day window. The §7 verification scenarios in [`../docs/business-description.md`](../docs/business-description.md) all work end-to-end here.
-
 Open [http://localhost:5173](http://localhost:5173) and walk the guest happy path:
 
 1. **Catalog** at `/` — lists active event types from `GET /event-types`.
@@ -84,7 +59,7 @@ Open [http://localhost:5173](http://localhost:5173) and walk the guest happy pat
 
 ### Admin flows
 
-Visit `/admin/settings` or `/admin/event-types`. The token modal appears on first admin visit. Against the Prism mock you can type **any value** — it's not enforced (see the dev-mock note above). Against the Go backend, supply the value of `ADMIN_TOKEN` from [`../backend/.env`](../backend/.env.example).
+Visit `/admin/settings` or `/admin/event-types`. The token modal appears on first admin visit. Against the Prism mock you can type **any value** — it's not enforced (see the dev-mock note above). Against a real backend, supply the deployment-configured `X-Admin-Token`.
 
 - **Settings** (`/admin/settings`) — change timezone or working hours, Save → success notification, refresh persists (Prism replays the example body).
 - **Event types** (`/admin/event-types`) — list, toggle active (optimistic update), create, edit. Slug-conflict UX is exercised when the contract returns 409.
@@ -113,7 +88,7 @@ All four should pass on a clean checkout. `npm test` works without a `.env` file
 
 ## Pointing at a different backend
 
-The frontend doesn't care whether `VITE_API_BASE_URL` is Prism, the in-repo Go backend, or a deployed API. Override it with `.env.local` (Vite picks this up automatically and `.env.local` wins over `.env`):
+The frontend doesn't care whether `VITE_API_BASE_URL` is Prism, a local backend, or a deployed API. Override it with `.env.local` (Vite picks this up automatically and `.env.local` wins over `.env`):
 
 ```bash
 echo "VITE_API_BASE_URL=https://calendar.example.com" > .env.local
@@ -123,22 +98,22 @@ echo "VITE_API_BASE_URL=https://calendar.example.com" > .env.local
 
 ## Scripts
 
-| Script             | What it does                                                                  |
-| ------------------ | ----------------------------------------------------------------------------- |
-| `dev`              | Run the Vite dev server.                                                      |
-| `dev:full`         | Contract watcher + Prism mock + Vite together (via `concurrently`).           |
-| `dev:full:backend` | Contract watcher + Go backend on :3000 + Vite (via `concurrently`).           |
-| `backend`          | Run only the Go backend (`go run ./cmd/calendar-service` from `../backend/`). |
-| `mock`             | Run Prism against the contract-generated OpenAPI on port 4010.                |
-| `contract:build`   | Build the OpenAPI YAML from the TypeSpec contract.                            |
-| `contract:watch`   | Watch and rebuild the contract on changes.                                    |
-| `gen:api`          | Build the contract and regenerate `src/api/types.ts`.                         |
-| `build`            | Type-check and produce a production bundle in `dist/`.                        |
-| `preview`          | Serve the production build locally.                                           |
-| `typecheck`        | Run `tsc -b --noEmit` against the project references.                         |
-| `lint`             | Run ESLint.                                                                   |
-| `format`           | Run Prettier on the workspace.                                                |
-| `test`             | Run Vitest once.                                                              |
+| Script           | What it does                                                            |
+| ---------------- | ----------------------------------------------------------------------- |
+| `dev`            | Run the Vite dev server.                                                |
+| `dev:full`       | Run contract watcher + Prism mock + Vite together (via `concurrently`). |
+| `mock`           | Run Prism against the contract-generated OpenAPI on port 4010.          |
+| `contract:build` | Build the OpenAPI YAML from the TypeSpec contract.                      |
+| `contract:watch` | Watch and rebuild the contract on changes.                              |
+| `gen:api`        | Build the contract and regenerate `src/api/types.ts`.                   |
+| `build`          | Type-check and produce a production bundle in `dist/`.                  |
+| `preview`        | Serve the production build locally.                                     |
+| `typecheck`      | Run `tsc -b --noEmit` against the project references.                   |
+| `lint`           | Run ESLint.                                                             |
+| `format`         | Run Prettier on the workspace.                                          |
+| `test`           | Run Vitest once.                                                        |
+
+For wiring the frontend up with the Go backend, use the **root [`Makefile`](../Makefile)** (`make dev` etc.) — it owns multi-workspace orchestration.
 
 ## Security note: admin token storage
 
