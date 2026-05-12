@@ -2,11 +2,12 @@
         dev dev-mock dev-backend dev-frontend \
         contract-build contract-watch \
         backend-build backend-test backend-lint \
-        frontend-build frontend-test frontend-lint
+        frontend-build frontend-test frontend-lint \
+        test-e2e test-e2e-ui test-e2e-install
 
 # Default goal: print the target list.
 help:
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # ---------------------------------------------------------------------------
 # One-shot dev orchestration
@@ -36,6 +37,7 @@ install: ## Install all workspace dependencies.
 	@cd contract && npm ci
 	@cd frontend && npm ci
 	@cd backend  && go mod download
+	@cd e2e      && npm ci
 
 generate: ## Rebuild the OpenAPI YAML, FE types and Go server stubs.
 	@cd contract && npm run build
@@ -80,3 +82,16 @@ backend-lint:   ; @$(MAKE) --no-print-directory -C backend lint
 frontend-build: ; @cd frontend && npm run build
 frontend-test:  ; @cd frontend && npm test
 frontend-lint:  ; @cd frontend && npm run lint
+
+# ---------------------------------------------------------------------------
+# End-to-end tests
+# ---------------------------------------------------------------------------
+
+test-e2e: ## Run Playwright e2e tests headlessly (spawns backend + frontend).
+	@cd e2e && npm test
+
+test-e2e-ui: ## Run Playwright in interactive UI mode.
+	@cd e2e && npm run test:ui
+
+test-e2e-install: ## One-time: install Playwright + Chromium browser.
+	@cd e2e && npm ci && npx playwright install --with-deps chromium

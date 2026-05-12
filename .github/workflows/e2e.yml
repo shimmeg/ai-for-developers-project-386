@@ -1,0 +1,94 @@
+name: e2e
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # В прод-проекте — вынести в repo secret. Здесь учебный сценарий:
+      # бэкенд живёт только пока идёт джоба, токен умирает вместе с ней.
+      ADMIN_TOKEN: e2e-admin-token-please-change-me-1234
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            contract/package-lock.json
+            frontend/package-lock.json
+            e2e/package-lock.json
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: backend/go.sum
+
+      - name: Install contract dependencies
+        working-directory: contract
+        run: npm ci
+
+      - name: Build contract -> openapi.yaml
+        working-directory: contract
+        run: npm run build
+
+      - name: Generate backend API stubs
+        working-directory: backend
+        run: |
+          go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen \
+            -config oapi-codegen.yaml \
+            ../contract/tsp-output/@typespec/openapi3/openapi.yaml
+
+      - name: Download Go dependencies
+        working-directory: backend
+        run: go mod download
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Generate frontend API types
+        working-directory: frontend
+        run: npm run gen:api
+
+      - name: Install e2e dependencies
+        working-directory: e2e
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: e2e
+        run: npx playwright test
+        env:
+          CI: 'true'
+          ADMIN_TOKEN: ${{ env.ADMIN_TOKEN }}
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 14
+
+      - name: Upload trace + screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: e2e/test-results/
+          retention-days: 14
