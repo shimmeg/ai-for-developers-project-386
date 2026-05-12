@@ -1,9 +1,15 @@
 // Package config loads runtime configuration from environment variables.
-// All settings have sensible defaults except ADMIN_TOKEN, which is
-// mandatory and must be at least 16 characters long.
+// All settings have sensible defaults. ADMIN_TOKEN is optional: when
+// unset, a random token is generated and admin endpoints become
+// effectively inaccessible — the auth middleware still runs, it just
+// never matches an incoming header. This lets the service boot in
+// CI smoke environments (e.g., the Hexlet check) that only verify
+// the public catalog responds on $PORT.
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"os"
@@ -29,7 +35,8 @@ const (
 )
 
 // LoadFromEnv builds a Config from process environment. Returns an error
-// when ADMIN_TOKEN is missing/too short or when PORT is malformed.
+// when PORT is malformed, when LOG_LEVEL is unrecognised, or when an
+// explicitly-set ADMIN_TOKEN is shorter than the minimum length.
 func LoadFromEnv() (Config, error) {
 	cfg := Config{
 		Port:           defaultPort,
@@ -46,9 +53,9 @@ func LoadFromEnv() (Config, error) {
 		cfg.Port = port
 	}
 
-	token := os.Getenv("ADMIN_TOKEN")
-	if len(token) < minAdminTokenLength {
-		return Config{}, fmt.Errorf("ADMIN_TOKEN must be at least %d characters", minAdminTokenLength)
+	token, err := loadAdminToken()
+	if err != nil {
+		return Config{}, err
 	}
 	cfg.AdminToken = token
 
@@ -77,4 +84,25 @@ func LoadFromEnv() (Config, error) {
 		}
 	}
 	return cfg, nil
+}
+
+// loadAdminToken returns the configured admin token. When ADMIN_TOKEN is
+// unset, a 32-byte random hex token is generated so the service can boot;
+// the value is never logged or surfaced, so admin endpoints become
+// inaccessible in practice. When ADMIN_TOKEN is set, it must meet the
+// minimum length so deployments don't accidentally pick a weak secret.
+func loadAdminToken() (string, error) {
+	t := os.Getenv("ADMIN_TOKEN")
+	if t == "" {
+		var b [32]byte
+		if _, err := rand.Read(b[:]); err != nil {
+			return "", fmt.Errorf("generate random admin token: %w", err)
+		}
+		fmt.Fprintln(os.Stderr, "warning: ADMIN_TOKEN not set; generated a random token, admin endpoints will be inaccessible")
+		return hex.EncodeToString(b[:]), nil
+	}
+	if len(t) < minAdminTokenLength {
+		return "", fmt.Errorf("ADMIN_TOKEN must be at least %d characters", minAdminTokenLength)
+	}
+	return t, nil
 }

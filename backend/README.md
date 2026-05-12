@@ -14,9 +14,10 @@ PostgreSQL + GORM behind the same interfaces.
 cd ../contract && npm ci && npm run build && cd -
 make generate
 
-# Run the server. ADMIN_TOKEN is mandatory and must be ≥16 chars.
-# The backend auto-loads backend/.env on startup; real process env vars
-# always win when both are set.
+# Run the server. ADMIN_TOKEN is optional; if set it must be ≥16 chars,
+# if unset a random token is generated and admin endpoints become
+# inaccessible. The backend auto-loads backend/.env on startup; real
+# process env vars always win when both are set.
 cp .env.example .env
 # Edit .env and replace the placeholder ADMIN_TOKEN with a real secret,
 # e.g. `ADMIN_TOKEN="$(openssl rand -hex 24)"`, then:
@@ -29,7 +30,7 @@ make run
 | Var | Default | Notes |
 |---|---|---|
 | `PORT` | `3000` | matches the contract's `@server` URL |
-| `ADMIN_TOKEN` | — | **required**, ≥16 characters |
+| `ADMIN_TOKEN` | _random_ | when set must be ≥16 chars; when unset the server generates a random token at startup and admin endpoints become inaccessible |
 | `FRONTEND_ORIGIN` | `http://localhost:5173` | CORS allow-list |
 | `DEFAULT_TZ` | `UTC` | seeds OwnerSettings on first boot |
 | `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
