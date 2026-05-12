@@ -50,6 +50,18 @@ func run() error {
 	store := memory.NewStore(domain.DefaultSettings(cfg.DefaultTZ))
 	clock := domain.SystemClock{}
 
+	// Seed the catalog when the store comes up empty so guests never land
+	// on a blank public URL — the in-memory store is wiped on every restart,
+	// and Render free-plan instances cold-spin frequently. Admin can still
+	// edit or remove these via /admin/event-types after start-up.
+	if len(store.EventTypes.List()) == 0 {
+		for _, et := range domain.DefaultEventTypes(clock.Now()) {
+			if _, err := store.EventTypes.Create(et); err != nil {
+				logger.Warn("seed event type failed", "slug", et.Slug, "err", err)
+			}
+		}
+	}
+
 	srv := server.New(
 		service.NewSettingsService(store.Settings),
 		service.NewEventTypeService(store.EventTypes, clock),
