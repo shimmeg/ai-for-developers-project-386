@@ -93,7 +93,7 @@ curl -i -H "X-Admin-Token: $ADMIN_TOKEN" http://localhost:3000/admin/settings
 
 > Public instance for the Hexlet course step — the [security warning](#security--do-not-deploy-this-version-publicly) at the top of this file still applies. Don't book real meetings here.
 
-**Public URL:** _set after first deploy — see step 4 below._
+**Public URL:** <https://calendar-service-g9sr.onrender.com>
 
 The repo ships with a single `Dockerfile` that builds the frontend, the OpenAPI server stubs, and the Go binary, then packs everything into a ~30 MB Alpine image. The Go server reads the built SPA from `STATIC_DIR` and serves it on the same port as the API, so one deploy = one URL.
 
