@@ -16,10 +16,7 @@
     {
       "name": "backend",
       "runtimeExecutable": "sh",
-      "runtimeArgs": [
-        "-c",
-        "cd backend && go run ./cmd/calendar-service"
-      ],
+      "runtimeArgs": ["-c", "cd backend && go run ./cmd/calendar-service"],
       "port": 3000
     }
   ]
