@@ -34,7 +34,7 @@ All multi-workspace orchestration goes through the root [`Makefile`](Makefile). 
 ### One-time setup
 
 ```bash
-make install                                          # contract + frontend npm ci, backend go mod download
+make install                                          # contract + frontend + e2e npm ci, backend go mod download
 ( cd backend && cp .env.example .env )                # then edit backend/.env and set
                                                        #   ADMIN_TOKEN=$(openssl rand -hex 24)
 echo "VITE_API_BASE_URL=http://localhost:3000" > frontend/.env.local
@@ -70,7 +70,7 @@ Open <http://localhost:5173>. The admin token modal asks for the value of `ADMIN
 | Target          | What it does                                                                |
 | --------------- | --------------------------------------------------------------------------- |
 | `make help`     | Print the list of targets (default goal).                                   |
-| `make install`  | `npm ci` in contract + frontend, `go mod download` in backend.              |
+| `make install`  | `npm ci` in contract + frontend + e2e, `go mod download` in backend.        |
 | `make generate` | Rebuild OpenAPI YAML, FE types, Go server stubs.                            |
 | `make build`    | Production build for every workspace.                                       |
 | `make test`     | Run every workspace's test suite.                                           |
@@ -88,6 +88,24 @@ curl -s http://localhost:3000/event-types | jq
 curl -i http://localhost:3000/admin/settings
 curl -i -H "X-Admin-Token: $ADMIN_TOKEN" http://localhost:3000/admin/settings
 ```
+
+## Testing
+
+| Layer                | Command              | What it runs                                              |
+| -------------------- | -------------------- | --------------------------------------------------------- |
+| Unit / package       | `make test`          | contract, backend (`go test`), frontend (Vitest).         |
+| Backend integration  | `make backend-test`  | Go integration tests under `backend/test/`.               |
+| End-to-end (browser) | `make test-e2e`      | Playwright happy-path against a real backend + Vite dev.  |
+| E2E interactive      | `make test-e2e-ui`   | Playwright UI mode (great for debugging).                 |
+
+End-to-end tests live in [`e2e/`](e2e). Playwright spawns the Go backend on `:3000` and the Vite dev server on `:5173`, seeds one event type via the admin API, and walks through the guest booking flow in Chromium. The first run on a machine needs the Chromium binary:
+
+```bash
+make test-e2e-install     # one-time per machine
+make test-e2e
+```
+
+See [`e2e/README.md`](e2e/README.md) for the full walkthrough, CI artifact layout, and how to add new specs. CI runs the suite on every PR and push to `main` via [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml).
 
 ## Working with the API contract
 
