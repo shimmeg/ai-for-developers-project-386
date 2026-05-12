@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-#
 # Multi-stage build producing a single ~30 MB image that hosts the calendar
 # booking service: a Go HTTP API plus the built Vite frontend served from the
 # same port. The four stages are intentionally narrow so layer caches stay
@@ -9,12 +7,16 @@
 # Stage 2 (frontend):  npm + Vite build -> frontend/dist
 # Stage 3 (backend):   oapi-codegen + go build -> static binary
 # Stage 4 (runtime):   alpine + binary + frontend/dist
+#
+# The Dockerfile sticks to features supported by Docker's legacy builder
+# (no `# syntax=` directive, no `--mount=type=cache`) so the same file
+# builds under the Hexlet CI runner, Render, and local Docker/BuildKit.
 
 # ---------- 1) contract ----------
 FROM node:22-alpine AS contract
 WORKDIR /work/contract
 COPY contract/package.json contract/package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN npm ci
 COPY contract/ ./
 RUN npm run build
 
@@ -22,7 +24,7 @@ RUN npm run build
 FROM node:22-alpine AS frontend
 WORKDIR /work/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN npm ci
 COPY frontend/ ./
 COPY --from=contract /work/contract/tsp-output ../contract/tsp-output
 # Reuse the openapi.yaml from stage 1 — no need to rebuild the contract here.
@@ -38,20 +40,14 @@ FROM golang:1.25-alpine AS backend
 RUN apk add --no-cache git
 WORKDIR /src
 COPY backend/go.mod backend/go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go mod download
+RUN go mod download
 COPY backend/ ./
 COPY --from=contract /work/contract/tsp-output ../contract/tsp-output
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen \
+RUN go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen \
       -config oapi-codegen.yaml \
       ../contract/tsp-output/@typespec/openapi3/openapi.yaml
 ENV CGO_ENABLED=0
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go build -ldflags="-s -w" -o /out/calendar-service ./cmd/calendar-service
+RUN go build -ldflags="-s -w" -o /out/calendar-service ./cmd/calendar-service
 
 # ---------- 4) runtime ----------
 FROM alpine:3.20
