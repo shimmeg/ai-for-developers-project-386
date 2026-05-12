@@ -28,7 +28,10 @@ test.describe('Guest booking happy path', () => {
     await expect(firstSlot).toBeVisible({ timeout: 10_000 });
     await firstSlot.click();
 
-    await expect(firstSlot).toHaveAttribute('aria-pressed', 'true');
+    // После клика URL получает ?slot=… и Continue становится активной — этого
+    // достаточно как доказательство выбора. Не используем
+    // `expect(firstSlot).toHaveAttribute('aria-pressed', 'true')` — это
+    // ре-исполнит локатор и найдёт уже СЛЕДУЮЩУЮ кнопку с pressed=false.
     await expect(page).toHaveURL(/\?slot=/);
     await expect(continueBtn).toBeEnabled();
     await continueBtn.click();
@@ -59,6 +62,7 @@ test.describe('Guest booking happy path', () => {
     await expect(page.getByText(guestName)).toBeVisible();
     await expect(page.getByText(guestEmail)).toBeVisible();
     await expect(page.getByText(guestNotes)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Book another' })).toBeVisible();
+    // "Book another" — это Mantine <Button component={Link}>, рендерится как <a>.
+    await expect(page.getByRole('link', { name: 'Book another' })).toBeVisible();
   });
 });
