@@ -43,10 +43,17 @@ export default defineConfig({
     {
       // Go-бэкенд. Health-check: GET /event-types отдаёт 200 даже при пустом
       // сторе. Не используем make dev — Playwright не дружит с trap 'kill 0'.
+      //
+      // ВНИМАНИЕ: reuseExistingServer НЕ выставлен (по умолчанию false).
+      // Иначе если у разработчика крутится `make dev-backend` с собственным
+      // ADMIN_TOKEN из backend/.env, наш webServer.env здесь НЕ применится
+      // (никакой процесс не запускается), а global-setup.ts всё равно
+      // отправит дефолтный e2e-токен — backend ответит 401 и весь прогон
+      // упадёт ещё до тестов. Лучше упасть на «port 3000 in use», чем
+      // получить непонятный 401.
       command: 'go run ./cmd/calendar-service',
       cwd: '../backend',
       url: `${BACKEND_URL}/event-types`,
-      reuseExistingServer: !process.env.CI,
       stdout: 'pipe',
       stderr: 'pipe',
       timeout: 60_000,

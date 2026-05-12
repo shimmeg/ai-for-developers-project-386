@@ -30,7 +30,11 @@ make test-e2e-ui       # Playwright UI mode (interactive)
 cd e2e && npm test
 ```
 
-Playwright launches the Go backend (`go run ./cmd/calendar-service`) on `:3000` and the Vite dev server on `:5173` automatically (see `webServer` in `playwright.config.ts`). If you already have `make dev-backend` and `make dev-frontend` running locally, Playwright reuses them (`reuseExistingServer: !CI`).
+Playwright launches the Go backend (`go run ./cmd/calendar-service`) on `:3000` and the Vite dev server on `:5173` automatically (see `webServer` in `playwright.config.ts`).
+
+The **backend is always spawned fresh** — `reuseExistingServer` is intentionally off for it, because reusing a backend whose `ADMIN_TOKEN` doesn't match the e2e default would make `global-setup.ts` fail with 401 in a confusing way. If you already have `make dev-backend` running, stop it before `make test-e2e` (you'll see a "port 3000 in use" error otherwise).
+
+The **frontend is reused when available** (`reuseExistingServer: !CI`) — Vite has no auth, so attaching to a running `make dev-frontend` is safe and fast.
 
 ## Configuration
 
@@ -80,7 +84,7 @@ npx playwright show-trace path/to/trace.zip
 
 ## Troubleshooting
 
-- **Port 3000 or 5173 already in use.** Stop whatever is running there, or rely on `reuseExistingServer: !CI` and start a fresh `make dev-backend && make dev-frontend` yourself.
-- **Backend reused with stale state.** If you've changed backend code and Playwright is reusing the old process, restart it. The in-memory store dies with the process.
+- **Port 3000 in use.** Playwright always spawns its own backend; stop any `make dev-backend` you have running. (The frontend on `:5173` is reused if present, so it's fine to leave `make dev-frontend` up.)
+- **`global-setup.ts` fails with 401 on `PUT /admin/settings`.** Shouldn't happen via the normal flow — `ADMIN_TOKEN` is shared between `webServer.env` and the seeder via one constant in `playwright.config.ts`. If you've set `ADMIN_TOKEN=` in your shell, make sure it has the minimum length (16+ chars) the backend requires.
 - **Spec times out at the slot picker.** Verify `globalSetup` ran (look for the `PUT /admin/settings` and `POST /admin/event-types` calls in backend logs). The seeded working hours guarantee at least one slot in any 14-day window.
 - **CORS errors in browser console.** `FRONTEND_ORIGIN` on the backend and the Vite host must match exactly — both are `http://127.0.0.1:5173` (not `localhost`).
