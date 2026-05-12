@@ -6,7 +6,7 @@
 
 A simple Calendly-style booking service built as a Hexlet learning project. A single, pre-defined calendar owner publishes the event types they offer; anonymous guests pick a type and book a free slot in the next 14 days. No accounts, no logins, no email — v1 is deliberately the smallest useful slice.
 
-> **Status:** v1 is in active development. Behaviour spec, API contract, and the React/TypeScript frontend (Phases 1-3) are in place; the backend will follow.
+> **Status:** v1 is in active development. Behaviour spec, API contract, React/TypeScript frontend, and a Go backend with in-memory storage are in place. Persistence (PostgreSQL + GORM) follows in a future iteration.
 
 ## Security — do not deploy this version publicly
 
@@ -21,21 +21,72 @@ v1 has **no real authentication**. The owner-only `/admin/*` endpoints are prote
 | [`docs/business-description.md`](docs/business-description.md) | Authoritative description of the v1 behaviour: roles, entities, flows, slot rules, non-goals, verification scenarios.                                                                    |
 | [`contract/`](contract)                                        | TypeSpec API contract that compiles to OpenAPI 3.1. Source of truth for the HTTP API shared between frontend and backend.                                                                |
 | [`frontend/`](frontend)                                        | Vite + React + TypeScript + Mantine app. Consumes only the contract; talks to a Prism mock locally. See [`frontend/README.md`](frontend/README.md) for setup, scripts, and walkthroughs. |
+| [`backend/`](backend)                                          | Go + Gin HTTP service. Implements the contract end-to-end; v1 uses in-memory storage. See [`backend/README.md`](backend/README.md).                                                      |
 
-`backend/` and database directories will be added in a future phase.
+A database directory will be added in a future phase, alongside a PostgreSQL/GORM swap-in for the backend.
 
 ## Running the project locally
 
-The frontend is the only runnable component today; it ships with a Prism mock of the contract so no backend is required.
+Prerequisites: **Go 1.23+** and **Node 22+**.
+
+You can run the frontend against the **Prism mock** (no backend required, useful for FE-only work) or against the **real Go backend** (end-to-end behaviour, real auth, real conflict checks).
+
+### One-time setup
 
 ```bash
-cd frontend
-npm install                       # one-time
-npm run gen:api                   # regenerate src/api/types.ts from the contract
-npm run dev:full                  # contract watcher + Prism mock + Vite, in one process
+( cd contract && npm ci && npm run build )            # build the OpenAPI YAML
+( cd backend  && cp .env.example .env )               # then edit backend/.env and set
+                                                       #   ADMIN_TOKEN=$(openssl rand -hex 24)
+( cd frontend && npm ci && npm run gen:api )          # install deps + regenerate types
 ```
 
-Open <http://localhost:5173>. Full walkthroughs (guest happy path, admin flows, automated checks) live in [`frontend/README.md`](frontend/README.md).
+### Option A — frontend + Prism mock
+
+```bash
+cd frontend && npm run dev:full       # contract watcher + Prism on :4010 + Vite on :5173
+```
+
+The Prism mock returns the contract's example bodies for every operation and accepts any `X-Admin-Token`. Useful for working on the UI without touching the backend.
+
+### Option B — frontend + Go backend
+
+One command, in one terminal:
+
+```bash
+cd frontend && npm run dev:full:backend
+# contract watcher + Go backend on :3000 + Vite on :5173 (under `concurrently`)
+```
+
+…or split across two terminals if you prefer separate log streams:
+
+```bash
+# Terminal 1
+cd backend  && make run                       # :3000 (auto-loads backend/.env)
+
+# Terminal 2
+cd frontend && npm run dev                    # :5173
+```
+
+The backend auto-loads `backend/.env` on startup (process env vars win on conflict), so you do not need to export `ADMIN_TOKEN` manually as long as `.env` carries it.
+
+Point the frontend at the backend with `frontend/.env.local`:
+
+```bash
+echo "VITE_API_BASE_URL=http://localhost:3000" > frontend/.env.local
+```
+
+Open <http://localhost:5173>. The admin token modal asks for the value of `ADMIN_TOKEN` from `backend/.env`. Full walkthroughs (guest happy path, admin flows, automated checks) live in [`frontend/README.md`](frontend/README.md) and the §7 verification scenarios in [`docs/business-description.md`](docs/business-description.md).
+
+### Smoke checks once the backend is up
+
+```bash
+# Public catalog — should return your event types in the configured timezone.
+curl -s http://localhost:3000/event-types | jq
+
+# Admin auth — without token must be 401; with the right token, 200.
+curl -i http://localhost:3000/admin/settings
+curl -i -H "X-Admin-Token: $ADMIN_TOKEN" http://localhost:3000/admin/settings
+```
 
 ## Working with the API contract
 

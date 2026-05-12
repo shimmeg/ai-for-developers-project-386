@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:full": "concurrently -n contract,mock,vite -c blue,green,magenta \"npm:contract:watch\" \"npm:mock\" \"npm:dev\"",
+    "dev:full:backend": "concurrently -n contract,backend,vite -c blue,yellow,magenta \"npm:contract:watch\" \"npm:backend\" \"npm:dev\"",
+    "backend": "cd ../backend && go run ./cmd/calendar-service",
     "contract:build": "npm --prefix ../contract run build",
     "contract:watch": "npm --prefix ../contract run watch",
     "mock": "prism mock ../contract/tsp-output/@typespec/openapi3/openapi.yaml -p 4010 --cors",
