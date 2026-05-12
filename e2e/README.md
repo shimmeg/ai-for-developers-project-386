@@ -34,10 +34,10 @@ Playwright launches the Go backend (`go run ./cmd/calendar-service`) on `:3000` 
 
 ## Configuration
 
-| Env var       | Default                              | Purpose                                |
-| ------------- | ------------------------------------ | -------------------------------------- |
-| `ADMIN_TOKEN` | `e2e-admin-token-please-change-me`   | Admin auth header used by the seeder.  |
-| `CI`          | unset locally, `true` in CI          | Switches reporters, retries, workers.  |
+| Env var       | Default                            | Purpose                               |
+| ------------- | ---------------------------------- | ------------------------------------- |
+| `ADMIN_TOKEN` | `e2e-admin-token-please-change-me` | Admin auth header used by the seeder. |
+| `CI`          | unset locally, `true` in CI        | Switches reporters, retries, workers. |
 
 ## Scenarios
 

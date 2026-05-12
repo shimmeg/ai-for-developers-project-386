@@ -91,12 +91,12 @@ curl -i -H "X-Admin-Token: $ADMIN_TOKEN" http://localhost:3000/admin/settings
 
 ## Testing
 
-| Layer                | Command              | What it runs                                              |
-| -------------------- | -------------------- | --------------------------------------------------------- |
-| Unit / package       | `make test`          | contract, backend (`go test`), frontend (Vitest).         |
-| Backend integration  | `make backend-test`  | Go integration tests under `backend/test/`.               |
-| End-to-end (browser) | `make test-e2e`      | Playwright happy-path against a real backend + Vite dev.  |
-| E2E interactive      | `make test-e2e-ui`   | Playwright UI mode (great for debugging).                 |
+| Layer                | Command             | What it runs                                             |
+| -------------------- | ------------------- | -------------------------------------------------------- |
+| Unit / package       | `make test`         | contract, backend (`go test`), frontend (Vitest).        |
+| Backend integration  | `make backend-test` | Go integration tests under `backend/test/`.              |
+| End-to-end (browser) | `make test-e2e`     | Playwright happy-path against a real backend + Vite dev. |
+| E2E interactive      | `make test-e2e-ui`  | Playwright UI mode (great for debugging).                |
 
 End-to-end tests live in [`e2e/`](e2e). Playwright spawns the Go backend on `:3000` and the Vite dev server on `:5173`, seeds one event type via the admin API, and walks through the guest booking flow in Chromium. The first run on a machine needs the Chromium binary:
 

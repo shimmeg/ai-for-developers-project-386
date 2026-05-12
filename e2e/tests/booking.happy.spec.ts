@@ -52,9 +52,7 @@ test.describe('Guest booking happy path', () => {
     await page.getByRole('button', { name: 'Confirm booking' }).click();
 
     // --- Success --------------------------------------------------------
-    await expect(page).toHaveURL(
-      new RegExp(`/events/${SEED_SLUG}/booked/[0-9a-f-]{36}$`),
-    );
+    await expect(page).toHaveURL(new RegExp(`/events/${SEED_SLUG}/booked/[0-9a-f-]{36}$`));
     await expect(page.getByRole('heading', { name: 'Booking confirmed' })).toBeVisible();
 
     // Имя event type рендерится как <Title order={3}> — это <h3>.

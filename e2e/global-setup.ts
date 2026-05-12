@@ -31,9 +31,7 @@ export default async function globalSetup(): Promise<void> {
       },
     });
     if (!settingsRes.ok()) {
-      throw new Error(
-        `seed settings failed: ${settingsRes.status()} ${await settingsRes.text()}`,
-      );
+      throw new Error(`seed settings failed: ${settingsRes.status()} ${await settingsRes.text()}`);
     }
 
     // 2) Создаём event type.
@@ -48,9 +46,7 @@ export default async function globalSetup(): Promise<void> {
     // 201 на первой попытке, 409 — если backend переиспользуется локально
     // (reuseExistingServer:true) и event type уже создан. И то и другое ок.
     if (!etRes.ok() && etRes.status() !== 409) {
-      throw new Error(
-        `seed event-type failed: ${etRes.status()} ${await etRes.text()}`,
-      );
+      throw new Error(`seed event-type failed: ${etRes.status()} ${await etRes.text()}`);
     }
   } finally {
     await api.dispose();
